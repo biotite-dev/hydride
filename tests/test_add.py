@@ -70,15 +70,9 @@ def test_hyd_position(molecule_id):
     random.seed(0)
     molecule = residue(molecule_id)
     # Perform translation of the molecule along the three axes
-    translation = random.uniform(-100, 100, 3)
-    molecule.coord = molecule.coord + np.array(
-        [translation[0], translation[1], translation[2]]
-    )
+    molecule.coord = molecule.coord + random.uniform(-100, 100, 3)
     # Perform rotation around x, y and z axis
-    angles = random.uniform(0, 2 * np.pi, 3)
-    molecule = rotate(
-        molecule, np.array([angles[0], angles[1], angles[2]])
-    )
+    molecule = rotate(molecule, random.uniform(0, 2 * np.pi, 3))
     molecule_hyd_coord = molecule.coord[molecule.element == "H"]
     molecule_without_hyd = molecule[molecule.element != "H"]
     hyd_indices = np.where(molecule.element == "H")[0]
@@ -128,15 +122,9 @@ def test_rotational_freedom(molecule_id):
     # Now subjecting molecule to spatial modification
     # Perform translation of the molecule along the three axes
     random.seed(0)
-    translation = random.uniform(-100, 100, 3)
-    molecule.coord = molecule.coord + np.array(
-        [translation[0], translation[1], translation[2]]
-    )
+    molecule.coord = molecule.coord + random.uniform(-100, 100, 3)
     # Perform rotation around x, y and z axis
-    angles = random.uniform(0, 2 * np.pi, 3)
-    molecule = rotate(
-        molecule, np.array([angles[0], angles[1], angles[2]])
-    )
+    molecule = rotate(molecule, random.uniform(0, 2 * np.pi, 3))
     molecule_hyd_coord = molecule.coord[molecule.element == "H"]
     molecule_without_hyd = molecule[molecule.element != "H"]
     molecule_with_newly_added_hyd = add_hydrogen(molecule_without_hyd)
@@ -169,15 +157,9 @@ def test_terminal_double_bond():
     # Subjecting the molecule to translation and rotation
     # Perform translation of the molecule along the three axes
     random.seed(0)
-    translation = random.uniform(-100, 100, 3)
-    arginine.coord = arginine.coord + np.array(
-        [translation[0], translation[1], translation[2]]
-    )
+    arginine.coord = arginine.coord + random.uniform(-100, 100, 3)
     # Perform rotation around x, y and z axis
-    angles = random.uniform(0, 2 * np.pi, 3)
-    arginine = rotate(
-        arginine, np.array([angles[0], angles[1], angles[2]])
-    )
+    arginine = rotate(arginine, random.uniform(0, 2 * np.pi, 3))
     # The hydrogen atoms of interest, i. e. the hydrogen atoms bound to
     # terminal nitrogen atoms, are located at the indices 22 to 25
     # As delocalisation across the whole guanidino group is given due to
@@ -290,14 +272,8 @@ def test_missing_heavy_atoms():
     """
     benzene = residue("BNZ")
     random.seed(0)
-    translation = random.uniform(-100, 100, 3)
-    benzene.coord = benzene.coord + np.array(
-        [translation[0], translation[1], translation[2]]
-    )
-    angles = random.uniform(0, 2 * np.pi, 3)
-    benzene = rotate(
-        benzene, np.array([angles[0], angles[1], angles[2]])
-    )
+    benzene.coord = benzene.coord + random.uniform(-100, 100, 3)
+    benzene = rotate(benzene, random.uniform(0, 2 * np.pi, 3))
     # One carbon atom occurring before the last atom must be removed in
     # order to enable effects on the following hydrogen addition
     # The first carbon atom of benzene is removed in order to enable
@@ -385,14 +361,8 @@ def test_order_differing_from_ccd():
     lysine = residue("LYS")
     lysine_coord_1 = lysine.coord[lysine.element == "H"]
     random.seed(0)
-    translation = random.uniform(-100, 100, 3)
-    lysine.coord = lysine.coord + np.array(
-        [translation[0], translation[1], translation[2]]
-    )
-    angles = random.uniform(0, 2 * np.pi, 3)
-    lysine = rotate(
-        lysine, np.array([angles[0], angles[1], angles[2]])
-    )
+    lysine.coord = lysine.coord + random.uniform(-100, 100, 3)
+    lysine = rotate(lysine, random.uniform(0, 2 * np.pi, 3))
     lysine_coord_2 = lysine.coord[lysine.element == "H"]
     assert lysine_coord_1 != pytest.approx(lysine_coord_2, abs=1e-1)
     # Creating list containing 'packages' of heavy atoms in the side
