@@ -83,7 +83,6 @@ def _gather_hyd_indices(
    of the considered residue and its neighbour residues whereas the
    biochemical class is determined by the considered residue's `hetero`
    annotation and the application of the function `filter_amino_acids`.
-
    Parameters
    ----------
    counter: int
@@ -112,7 +111,6 @@ def _gather_hyd_indices(
    res_starts: ndarray, dtype=int
       The array containing the start indices of the residues comprised
       in the `atom_array` inserted in the `add_hydrogen` function.
-
    Returns
    -------
    hyd_indices: ndarray, dtype=int
@@ -124,7 +122,13 @@ def _gather_hyd_indices(
       acid and additionally has an amino group involved in a peptide
       bond, i. e. whether the residue is located in the middle or the
       end of a peptide chain.
-
+   monomer_class: int
+      Integer denoting the biochemical class of the currently considered
+      residue. 0 represents the biochemical class 'amino acid', 1
+      represents 'nucleotide' and 2 represents 'ligans/small molecule'. 
+   res_pos: str
+      A string denoting the currently considered residue's position
+      within a chain.
    """
 
    start_of_array = False
@@ -167,13 +171,22 @@ def _gather_hyd_indices(
          [idx for idx, i in enumerate(ref_res_array.element)
             if i == "H"]
       )
+      res_pos = "free"
+      # In case of a single residue, be it an amino acid, a nucleotide
+      # or a ligand/solvent molecule, all heavy atoms occurring in the
+      # reference also occur in the subject array
+      # Therefore, no subtraction needs to be performed and the ligand's
+      # class is assigned to the residue
+      monomer_class = 2
    # If a residue's `hetero` annotation is False, it is either an amino
    # acid or a nucleotide
    elif het_bool_value == False:
       # Checking whether aminoacid is dealt with
       if aa_bool_value:
+         monomer_class = 0
          if start_of_array:
             if considered_chain_id == successor_chain_id:
+               res_pos = "beginning"
                hyd_indices = np.array(
                   [idx for idx, i in
                      enumerate(ref_res_array.atom_name)
@@ -181,12 +194,14 @@ def _gather_hyd_indices(
                )
             # Considering case that free amino acid is dealt with
             else:
+               res_pos = "free"
                hyd_indices = np.array(
                   [idx for idx, i in enumerate(ref_res_array.element)
                      if i == "H"]
                )
          elif end_of_array:
             if considered_chain_id == precursor_chain_id:
+               res_pos = "end"
                amino_hyd_bool = True
                # The case of the amino acid proline must be paid
                # particular attention to as the hydrogen of the amino
@@ -206,6 +221,7 @@ def _gather_hyd_indices(
                   )
             # Considering case that free amino acid is dealt with
             else:
+               res_pos = "free"
                hyd_indices = np.array(
                   [idx for idx, i in enumerate(ref_res_array.element)
                      if i == "H"]
@@ -214,6 +230,7 @@ def _gather_hyd_indices(
             if (considered_chain_id == precursor_chain_id
                and
                considered_chain_id == successor_chain_id):
+               res_pos = "middle"
                amino_hyd_bool = True
                if res_name == "PRO":
                   hyd_indices = np.array(
@@ -228,6 +245,7 @@ def _gather_hyd_indices(
                         if i[0] == "H" and i != "HXT" and i != "H2"]
                   )
             elif considered_chain_id == precursor_chain_id:
+               res_pos = "end"
                amino_hyd_bool = True
                if res_name == "PRO":
                   hyd_indices = np.array(
@@ -242,6 +260,7 @@ def _gather_hyd_indices(
                         if i[0] == "H" and i != "H2"]
                   )
             elif considered_chain_id == successor_chain_id:
+               res_pos = "beginning"
                hyd_indices = np.array(
                   [idx for idx, i in
                      enumerate(ref_res_array.atom_name)
@@ -249,14 +268,17 @@ def _gather_hyd_indices(
                )
             # Considering case that free amino acid is dealt with
             else:
+               res_pos = "free"
                hyd_indices = np.array(
                   [idx for idx, i in enumerate(ref_res_array.element)
                      if i == "H"]
                )
       # A nucleotide is dealt with
       else:
+         monomer_class = 1
          if start_of_array:
             if considered_chain_id == successor_chain_id:
+               res_pos = "beginning"
                hyd_indices = np.array(
                   [idx for idx, i in
                      enumerate(ref_res_array.atom_name)
@@ -264,12 +286,14 @@ def _gather_hyd_indices(
                )
             # Considering case that free amino acid is dealt with
             else:
+               res_pos = "free"
                hyd_indices = np.array(
                   [idx for idx, i in enumerate(ref_res_array.element)
                      if i == "H"]
                )
          elif end_of_array:
             if considered_chain_id == precursor_chain_id:
+               res_pos = "end"
                hyd_indices = np.array(
                   [idx for idx, i in
                      enumerate(ref_res_array.atom_name)
@@ -277,6 +301,7 @@ def _gather_hyd_indices(
                )
             # Considering case that free amino acid is dealt with
             else:
+               res_pos = "free"
                hyd_indices = np.array(
                   [idx for idx, i in enumerate(ref_res_array.element)
                      if i == "H"]
@@ -285,18 +310,21 @@ def _gather_hyd_indices(
             if (considered_chain_id == precursor_chain_id
                and
                considered_chain_id == successor_chain_id):
+               res_pos = "middle"
                hyd_indices = np.array(
                   [idx for idx, i in
                      enumerate(ref_res_array.atom_name)
                      if i[0] == "H" and i != "HO3'" and i != "HOP3"]
                )
             elif considered_chain_id == precursor_chain_id:
+               res_pos = "end"
                hyd_indices = np.array(
                   [idx for idx, i in
                      enumerate(ref_res_array.atom_name)
                      if i[0] == "H" and i != "HOP3"]
                )
             elif considered_chain_id == successor_chain_id:
+               res_pos = "beginning"
                hyd_indices = np.array(
                   [idx for idx, i in
                      enumerate(ref_res_array.atom_name)
@@ -304,11 +332,14 @@ def _gather_hyd_indices(
                )
             # Considering case that free amino acid is dealt with
             else:
+               res_pos = "free"
                hyd_indices = np.array(
                   [idx for idx, i in enumerate(ref_res_array.element)
                      if i == "H"]
                )
    else:
+      monomer_class = 2
+      res_pos = "free"
       # It is assumed that the considered residue is just a small
       # molecule like fluoromethane that is not involved in a
       # macromolecular structure
@@ -319,7 +350,7 @@ def _gather_hyd_indices(
             if i == "H"]
       )
 
-   return (hyd_indices, amino_hyd_bool)
+   return (hyd_indices, amino_hyd_bool, monomer_class, res_pos)
 
 
 def _create_atom_array_including_hyd(
@@ -330,7 +361,6 @@ def _create_atom_array_including_hyd(
    """
    Create a new :class:`AtomArray` for the subject residue including the
    hydrdogen atoms that are supposed to be added to the subject array.
-
    The length of the array's zero axis is determined by forming the sum
    of the atoms comprised in the `subject_array` and the amount of
    hydrogen atoms to add.
@@ -345,7 +375,6 @@ def _create_atom_array_including_hyd(
    rows.
    Optional annotation categories such as charge or occupancy are copied
    if present in the input array.
-
    Parameters
    ----------
    num_heavy_atoms: int
@@ -354,7 +383,6 @@ def _create_atom_array_including_hyd(
    amount_of_hyd_to_add: int
       The amount of hydrogen atoms that are supposed to be added to the
       subject array.
-
    Returns
    -------
    res_array_with_hyd: :class:`AtomArray`
@@ -429,7 +457,6 @@ def _build_occurrence_array(hyd_indices, mobile_bond_list):
    Build the so-called `occurrence_array` whose purpose is to store the
    amount of hydrogen atoms bound to a certain heavy atom in the
    `subject_array`.
-
    The `occurrence_array` stores the amount of hydrogen atoms bound to a
    considered heavy atom in the following way:
    Each row represents one central atom carrying hydrogen and each entry
@@ -440,7 +467,6 @@ def _build_occurrence_array(hyd_indices, mobile_bond_list):
    amount of hydrogen bound to the respective central atom.
    In order to achieve broadcasting of the array, gaps are filled
    with entries of -1.
-
    Parameters:
    -----------
    hyd_indices: ndarray, dtype=int
@@ -451,7 +477,6 @@ def _build_occurrence_array(hyd_indices, mobile_bond_list):
       BondList comprising the indices of connected atoms of the
       so-called mobile structure, i. e. the reference array from the CCD
       as well as the respective BondType.
-
    Returns:
    --------
    occurrence_array: ndarray, shape=(n,m), dtype=int
@@ -523,24 +548,22 @@ def _build_occurrence_array(hyd_indices, mobile_bond_list):
       newshape=(amount_indices, amount_most_frequent)
    )
 
-   return (occurrence_array, atom_indices_carrying_hyd)
+   return (occurrence_array, unique_atom_ind_car_hyd)
 
 def _construct_fragments(
    counter, amino_hyd_bool, res_starts, fixed_bond_list,
    subject_length_zero_axis, subject_atom_names, subject_coords,
    atom_names_carrying_hyd, ref_atom_names, ref_coords,
-   atom_array_coords, subject_elements
+   atom_array_coords, subject_elements, monomer_class, res_pos
 ):
    """
    Construct fragments for the superimposition.
-
    A fragments pair consists of a fixed and a mobile fragment. The fixed
    fragment is built from the atom in the subject array which hydrogen
    is supposed to be added to as well as its neighbouring atoms whereas
    the mobile fragment is built from the corresponding atom in the
    reference array that carries hydrogen as well as its neighbouring
    atoms.
-
    Parameters
    ----------
    counter: int
@@ -587,7 +610,13 @@ def _construct_fragments(
       `atom_array` inserted into the `add_hydrogen` function.
    subject_elements: ndarray, dtype=str
       Array comprising the elements the subject array consists of.
-
+   monomer_class: int
+      Integer denoting the biochemical class of the currently considered
+      residue. 0 represents the biochemical class 'amino acid', 1
+      represents 'nucleotide' and 2 represents 'ligans/small molecule'. 
+   res_pos: str
+      A string denoting the currently considered residue's position
+      within a chain.
    Returns
    -------
    list_of_fragment_pairs: list
@@ -609,15 +638,71 @@ def _construct_fragments(
    # string in the `list_of_fragment_pairs` at the respective position
    # This procedure requires that the heavy atoms occur in the subject
    # array as well as in the reference array in the same order
-   if subject_atom_names.shape[0] != len(atom_names_carrying_hyd):
-      for i in range(len(atom_names_carrying_hyd)):
-         if atom_names_carrying_hyd[i] not in subject_atom_names:
-            insertion_indices_for_absence_marker.append(i)
+   # At first, `subject_atom_names` is transformed to
+   # `subject_atom_names_carrying_hyd` by removing atom names of atoms
+   # that do not carry hydrogen
+   subject_atom_names_carrying_hyd = subject_atom_names.copy()
+   print("subject_atom_names_carrying_hyd vor der Bereinigung: ", subject_atom_names_carrying_hyd)
+   for atom_name in subject_atom_names:
+      if atom_name not in atom_names_carrying_hyd:
+         print("Immerhin wird erkannt, dass das Atom keinen Wasserstoff trägt.")
+         subject_atom_names_carrying_hyd[
+            subject_atom_names_carrying_hyd != atom_name
+         ]
+   print("nach der Bereinigung: ", subject_atom_names_carrying_hyd)
+   
+   print(atom_names_carrying_hyd)
+   print(subject_atom_names_carrying_hyd)
+   if (
+      len(atom_names_carrying_hyd)
+      !=
+      subject_atom_names_carrying_hyd.shape[0]
+   ):
+      difference = (
+         abs(
+            len(atom_names_carrying_hyd)
+            -
+            subject_atom_names_carrying_hyd.shape[0]
+         )
+      )
+      print("Die Differenz beträgt: ", difference)
+      print("Die Monomerklasse: ", monomer_class)
+      if monomer_class == 0:
+         if res_pos == "beginning" or res_pos == "middle":
+            if difference == 1:
+               # The oxygen atom of the carboxyl group is lost due to
+               # the condensation reaction
+               # Therefore, the hydrogen atom bound to it is neglected
+               # anyway
+               print("Pass")
+               pass
+            else:
+               print("Dieser scheiß zweig wird erreicht")
+               for i in range(len(atom_names_carrying_hyd)):
+                  #print("Scheiße")
+                  if (atom_names_carrying_hyd[i] not in subject_atom_names_carrying_hyd) and (atom_names_carrying_hyd[i] != "OXT"):
+                     insertion_indices_for_absence_marker.append(i)
+         else:
+            print("Oh, das Ende")
+            for i in range(len(atom_names_carrying_hyd)):
+               #print(i)
+               if (
+                  atom_names_carrying_hyd[i]
+                  not in subject_atom_names_carrying_hyd
+               ):
+                  insertion_indices_for_absence_marker.append(i)
+      elif monomer_class == 1:
+         # Muss noch erledigt werden
+         pass
+      # A ligand/solvent molecule is dealt with
+      else:
+         for i in range(len(atom_names_carrying_hyd)):
+            if (
+               atom_names_carrying_hyd[i]
+               not in subject_atom_names_carrying_hyd
+            ):
+               insertion_indices_for_absence_marker.append(i)
 
-   # Indices of hydrogen atoms to add must be adjusted in case of
-   # an heavy atom occurring in the reference but not in the
-   # subject in order to prevent an IndexError
-   reduction = len(insertion_indices_for_absence_marker)
 
    # Iterating through the subject array in order to build fragments of
    # central atoms carrying hydrogen
@@ -700,24 +785,24 @@ def _construct_fragments(
                )
             mobile_fragment = np.array([])
             name_list = []
-            for i in f_fragment_indices:
+            for j in f_fragment_indices:
                fixed_fragment = np.append(
-                  fixed_fragment, subject_coords[i]
+                  fixed_fragment, subject_coords[j]
                )
-               name_list.append(subject_atom_names[i])
+               name_list.append(subject_atom_names[j])
             # Introducing new index in order to prevent
-            # interference with index 'i' from the iteration
+            # interference with index 'j' from the iteration
             # through the subject array
             # It is iterated through the `name_list` and not
             # through the `ref_res_array` in order to ensure that
             # the coordinates belonging to a certain atom appear
             # in the same sequence
-            for j in name_list:
-               if j in ref_atom_names:
+            for k in name_list:
+               if k in ref_atom_names:
                   mobile_fragment = np.append(
                      mobile_fragment,
                      ref_coords[
-                        j == ref_atom_names
+                        k == ref_atom_names
                      ]
                   )
             mobile_fragment = np.reshape(
@@ -732,30 +817,32 @@ def _construct_fragments(
          list_of_fragment_pairs.append(
             (fixed_fragment, mobile_fragment, i)
          )
-   
+
+   #print("Die insertion indices: ", insertion_indices_for_absence_marker)
    if len(insertion_indices_for_absence_marker) != 0:
+      #print("ah ja!")
       for i in insertion_indices_for_absence_marker:
          list_of_fragment_pairs.insert(i, "Missing in subject array")
+   #print(list_of_fragment_pairs)
 
-   return (list_of_fragment_pairs, reduction)
+   return list_of_fragment_pairs
 
 
 def _superimpose_hydrogen(
    fragment_list, subject_atom_names, subject_coords,
    ref_res_array, occurrence_array, hyd_indices, res_array_with_hyd,
    indices_of_added_hyd, amino_hydrogen, amino_hyd_bool,
-   global_bond_array, id_counter, atom_count, reduction
+   global_bond_array, id_counter, atom_count, monomer_class,
+   res_pos
 ):
    """
    Perform superimposition between the fixed and mobile fragments with
    the final aim adding hydrogen atoms.
-
    The respective fixed and mobile fragment are first centered in the
    origin, i. e. the coordinate (0,0,0). Subsequently, the optimal
    rotation matrix is computed by applying the Kabsch algorithm. The
    obtained rotation matrix, together with translation, is applied in
    order to add hydrogen atoms to the fixed fragment.
-
    Parameters
    ----------
    fragment_list: list
@@ -811,7 +898,6 @@ def _superimpose_hydrogen(
    reduction: int
       Integer keeping track of the amount of heavy atoms occurring in
       the reference array from the CCD but not in the subject array.
-
    Returns
    -------
    res_array_with_hyd: :class:`AtomArray`
@@ -837,6 +923,13 @@ def _superimpose_hydrogen(
    end_slice = 0
    primary_index = 0
 
+   heavy_atom_array = res_array_with_hyd[
+      res_array_with_hyd.element != "H"
+   ]
+   insertion_index = heavy_atom_array.shape[0]
+   #print("Insertion index: ", insertion_index)
+   #print("ID counter: ", id_counter)
+
    for index in range(0, len(fragment_list)):
       # In case that a heavy atom carrying hydrogen is present in the
       # reference, but not in the subject array, correct slicing of
@@ -846,14 +939,17 @@ def _superimpose_hydrogen(
       # subject array anyway will be additionally placed at a wrong
       # position
       if fragment_list[index] == "Missing in subject array":
+         #print("Oh, da fehlt was.")
+         #print(central_counter)
          num_geminal_hyd = np.count_nonzero(
             occurrence_array[central_counter] != -1
          )
          central_counter += 1
          end_slice += num_geminal_hyd
          start_slice += num_geminal_hyd
-         id_counter -= 1 
       else:
+         #print("Cool, es ist da.")
+         #print(central_counter)
          fixed_fragment = fragment_list[index][0]
          mobile_fragment = fragment_list[index][1]
          heavy_atom_idx = fragment_list[index][2]
@@ -905,7 +1001,11 @@ def _superimpose_hydrogen(
                superimposed.coord
             primary_index += 1
             # Adding hydrogen bonds to BondList
-            global_hyd_idx = id_counter + k - reduction
+            global_hyd_idx = (
+               id_counter + insertion_index
+            )
+            #print(global_hyd_idx)
+            global_heavy_atom_idx = id_counter + heavy_atom_idx
             # Increase the indices of the bonds following the hydrogen
             # bond in the global bond list by 1 in order to preserve
             # consistent bond indexing
@@ -928,11 +1028,19 @@ def _superimpose_hydrogen(
             )
             global_bond_array = np.concatenate(
                (global_bond_array, np.array([
-                  [heavy_atom_idx, global_hyd_idx, BondType.SINGLE]
+                  [
+                     global_heavy_atom_idx,
+                     global_hyd_idx,
+                     BondType.SINGLE
+                  ]
                ])), axis=0
             )
+            insertion_index += 1
             atom_count += 1
          start_slice += num_geminal_hyd
+   # Adding number of added hydrogen atoms as well as number of heavy
+   # atoms comprised in the 'res_array_with_hyd' to the `id_counter`
+   id_counter += res_array_with_hyd.shape[0]
    
    return (
       res_array_with_hyd, id_counter, global_bond_array, atom_count
@@ -944,9 +1052,8 @@ def add_hydrogen(atom_array):
    Add hydrogen atoms to a given AtomArray inserted into the function
    ('atom_array') based on comparison of the respective structure in the
    Chemical Component Dictionary.
-
    This function is useful for structures that have been determined
-   experimentally, e. g. by x-ray cristallography and therefore lack
+   experimentally, e. g. by x-ray crystallography and therefore lack
    the position of hydrogen atoms. This is oftentimes the case with
    protein structures from the Protein Data Bank, making the employment
    of these structures unfavourable, e. g. in molecular dynamics
@@ -954,7 +1061,7 @@ def add_hydrogen(atom_array):
    hydrogen is crucial. This function, however, meets this deficit of
    experimentally determined structures by adding hydrogen to them based
    on comparison with the respective structure found in the Chemical
-   Components Dictionary. This circumstance simultaneously poses a
+   Component Dictionary. This circumstance simultaneously poses a
    restriction, so that hydrogen addition to rather exotic compounds
    might fail. However, it splendidly works for biological compounds as
    proteins or nucleic acids since the 20 canonical amino acids
@@ -963,14 +1070,12 @@ def add_hydrogen(atom_array):
    For peptide bonds, hydrogen addition is based on values for bond
    angles and bond lengths of the peptide bond taken from literature.
    [1]_
-
    Parameters
    ----------
    atom_array: :class:`AtomArray`
       A structure lacking hydrogen atoms and which hydrogen atoms are
       supposed to be added to. It must consist of entries of the
       Chemical Component Dictionary in order for the procedure to work.
-
    Returns
    -------
    atom_array_with_hyd: :class:`AtomArray`
@@ -978,7 +1083,6 @@ def add_hydrogen(atom_array):
       atoms. Note that the position of rotatable hydrogen atoms is
       optimized but requires application of the function
       `relax_hydrogen`.
-
    References
    ----------
    .. [1] H-D Jakubke and H Jeschkeit,
@@ -1068,6 +1172,7 @@ def add_hydrogen(atom_array):
       # Obtaining reference AtomArray from the Chemical Components
       # Dictionary in order to know where to add hydrogen
       res_name = atom_array.res_name[start]
+      print("Aktuelle Aminosäure: ", res_name)
       try:
          ref_res_array = residue(res_name)
       except KeyError:
@@ -1098,6 +1203,8 @@ def add_hydrogen(atom_array):
       )
       hyd_indices = hyd_func_return[0]
       amino_hyd_bool = hyd_func_return[1]
+      monomer_class = hyd_func_return[2]
+      res_pos = hyd_func_return[3]
       
       # Amount of hydrogen atoms to add as well as amount of atoms
       # comprised in the `subject_array` are determined in order to
@@ -1121,11 +1228,11 @@ def add_hydrogen(atom_array):
          hyd_indices, mobile_bond_list
       )
       occurrence_array = build_func_return[0]
-      atom_indices_carrying_hyd = build_func_return[1]
+      unique_atom_ind_car_hyd = build_func_return[1]
 
       atom_names_carrying_hyd = []
       atom_names = ref_res_array.atom_name
-      for i in atom_indices_carrying_hyd:
+      for i in unique_atom_ind_car_hyd:
          atom_names_carrying_hyd.append(atom_names[i])
       
       subject_atom_names = subject_array.atom_name
@@ -1137,25 +1244,23 @@ def add_hydrogen(atom_array):
       ref_atom_names = ref_res_array.atom_name
       ref_coords = ref_res_array.coord
 
-      construction_func_return = _construct_fragments(
+      fragment_list = _construct_fragments(
          counter, amino_hyd_bool, res_starts, fixed_bond_list,
          subject_length_zero_axis, subject_atom_names, subject_coords,
          atom_names_carrying_hyd, ref_atom_names, ref_coords,
-         atom_array_coords, subject_elements
+         atom_array_coords, subject_elements, monomer_class, res_pos
       )
-      fragment_list = construction_func_return[0]
-      reduction = construction_func_return[1]
 
       superimpose_func_return = _superimpose_hydrogen(
          fragment_list, subject_atom_names, subject_coords,
          ref_res_array, occurrence_array, hyd_indices,
          res_array_with_hyd, indices_of_added_hyd, amino_hydrogen,
          amino_hyd_bool, global_bond_array, id_counter, atom_count,
-         reduction
+         monomer_class, res_pos
       )
       res_array_with_hyd = superimpose_func_return[0]
       id_counter = superimpose_func_return[1]
-      id_counter += subject_array.shape[0]
+      #id_counter += subject_array.shape[0]
       global_bond_array = superimpose_func_return[2]
       atom_count = superimpose_func_return[3]
 
