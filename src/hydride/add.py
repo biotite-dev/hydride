@@ -24,48 +24,63 @@ from biotite.structure.info import residue, standardize_order
 from biotite.structure.superimpose import _superimpose
 
 
-# Constructing reference mobile fragment for hydrogen addition at amino
-# group involved in peptide bond
-# The reason is that the bond angle of the hydrogen of an amino group
-# involved in a peptide bond differs from that of hydrogen of a free
-# amino group
-# The orientation of the hydrogen atom must be adjusted as well
-# Initially, all atoms are placed along the x-axis with the correct
-# distance from the nitrogen atom (cf. reference in DocString of the
-# `add_hydrogen` function)
-nitrogen = np.array([0,0,0])
-calpha = np.array([1.46,0,0])
-carbon = np.array([1.33,0,0])
-hydrogen = np.array([1.02,0,0])
-# Alpha carbon and hydrogen are rotated about the respective angle
-# obtained from literature (cf. reference in DocString of the
-# 'add_hydrogen' function)
-# Rotation is performed in xy plane
-z_axis = np.array([0,0,1])
-# 122° (CA-N-C angle) correspond to 2.1293 radians
-carbon = rotate_about_axis(carbon, z_axis, angle=2.1293)
-# 241.5° (CA-N-C angle plus C-N-H angle) correspond to 4.215 radians
-hydrogen = rotate_about_axis(hydrogen, z_axis, angle=4.215)
-nitrogen_atom = Atom(nitrogen, element="N")
-calpha_atom = Atom(calpha, element="C")
-carbon_atom = Atom(carbon, element="C")
-hydrogen_atom = Atom(hydrogen, element="H")
-amino_fragment_with_hyd = array([
-   carbon_atom,
-   calpha_atom,
-   hydrogen_atom,
-   nitrogen_atom
-])
-amino_hydrogen = amino_fragment_with_hyd[2]
-amino_fragment = np.array([
-   carbon,
-   calpha,
-   nitrogen
-])
+def _construct_peptide_fragment():
+   """
+   This function's purpose is to construct a reference mobile fragment
+   for hydrogen addition at amino groups involved in a peptide bond.
+   The reason for this is that the bond angle of the hydrogen of an
+   amino group involved in a peptided bond differs from that of hydrogen
+   of a free amino group. The orientation of the hydrogen atom must be
+   adjusted as well.
+   Returns
+   -------
+   """
+
+   # Initially, all atoms are placed along the x-axis with the correct
+   # distance from the nitrogen atom (cf. reference in DocString of the
+   # `add_hydrogen` function)
+   nitrogen = np.array([0,0,0])
+   calpha = np.array([1.46,0,0])
+   carbon = np.array([1.33,0,0])
+   hydrogen = np.array([1.02,0,0])
+
+   # Alpha carbon and hydrogen are rotated about the respective angle
+   # obtained from literature (cf. reference in DocString of the
+   # 'add_hydrogen' function)
+   # Rotation is performed in xy plane
+   z_axis = np.array([0,0,1])
+   # 122° (CA-N-C angle) correspond to 2.1293 radians
+   carbon = rotate_about_axis(carbon, z_axis, angle=2.1293)
+   # 241.5° (CA-N-C angle plus C-N-H angle) correspond to 4.215 radians
+   hydrogen = rotate_about_axis(hydrogen, z_axis, angle=4.215)
+
+   nitrogen_atom = Atom(nitrogen, element="N")
+   calpha_atom = Atom(calpha, element="C")
+   carbon_atom = Atom(carbon, element="C")
+   hydrogen_atom = Atom(hydrogen, element="H")
+
+   amino_fragment_with_hyd = array([
+      carbon_atom,
+      calpha_atom,
+      hydrogen_atom,
+      nitrogen_atom
+   ])
+
+   amino_hydrogen = amino_fragment_with_hyd[2]
+
+   amino_fragment = np.array([
+      carbon,
+      calpha,
+      nitrogen
+   ])
+
+   return amino_fragment, amino_hydrogen
+
+AMINO_FRAGMENT, AMINO_HYDROGEN = _construct_peptide_fragment()
 
 
 def _gather_hyd_indices(
-   counter, start, first_res_start, last_res_start, res_starts,
+   res_counter, start, first_res_start, last_res_start, res_starts,
    chain_ids, ref_res_array, considered_chain_id, het_bool_value,
    aa_bool_value, res_name
 ):
@@ -85,7 +100,7 @@ def _gather_hyd_indices(
    annotation and the application of the function `filter_amino_acids`.
    Parameters
    ----------
-   counter: int
+   res_counter: int
       Variable that keeps track of the number the currently considered
       residue has in the sequence of all residues. It is required in
       order to determine the considered residue's chain id as well as
@@ -145,31 +160,31 @@ def _gather_hyd_indices(
    elif start == first_res_start:
       start_of_array = True
       successor_chain_id = chain_ids[
-         res_starts[counter + 1]
+         res_starts[res_counter + 1]
       ]
    # Considering case that residue is located at the end of inserted
    # `AtomArray`
    elif start == last_res_start:
       end_of_array = True
       precursor_chain_id = chain_ids[
-         res_starts[counter - 1]
+         res_starts[res_counter - 1]
       ]
    # Considering case that residue is located in middle of inserted
    # `AtomArray`
    else:
       successor_chain_id = chain_ids[
-         res_starts[counter + 1]
+         res_starts[res_counter + 1]
       ]
       precursor_chain_id = chain_ids[
-         res_starts[counter - 1]
+         res_starts[res_counter - 1]
       ]
    
    if single_res:
       # In case of a single residue, all hydrogen atoms listed in the
       # reference array are added
       hyd_indices = np.array(
-         [idx for idx, i in enumerate(ref_res_array.element)
-            if i == "H"]
+         [idx for idx, element in enumerate(ref_res_array.element)
+            if element == "H"]
       )
       res_pos = "free"
       # In case of a single residue, be it an amino acid, a nucleotide
@@ -181,7 +196,7 @@ def _gather_hyd_indices(
    # If a residue's `hetero` annotation is False, it is either an amino
    # acid or a nucleotide
    elif het_bool_value == False:
-      # Checking whether aminoacid is dealt with
+      # Checking whether amino acid is dealt with
       if aa_bool_value:
          monomer_class = 0
          if start_of_array:
@@ -399,14 +414,10 @@ def _create_atom_array_including_hyd(
    ins_code = subject_array.ins_code[0]
    hetero_bool_value = subject_array.hetero[0]
 
-   blank_hyd_atom = Atom([0,0,0], element="H")
-   blank_heavy_atom = Atom([0,0,0])
-   res_array_with_hyd = array(
-      [blank_heavy_atom] * num_heavy_atoms
-      +
-      [blank_hyd_atom] * amount_of_hyd_to_add
+   res_array_with_hyd = AtomArray(
+      num_heavy_atoms + amount_of_hyd_to_add
    )
-
+   
    res_array_with_hyd.coord[:num_heavy_atoms] = subject_coords
    res_array_with_hyd.chain_id = np.array([chain_id] * atom_sum)
    res_array_with_hyd.res_id = np.array([res_id] * atom_sum)
@@ -415,6 +426,7 @@ def _create_atom_array_including_hyd(
    res_array_with_hyd.hetero = np.array([hetero_bool_value] * atom_sum)
    res_array_with_hyd.atom_name[:num_heavy_atoms] = subject_atom_names
    res_array_with_hyd.element[:num_heavy_atoms] = subject_elements
+   res_array_with_hyd.element[num_heavy_atoms:] = "H"
    
    # Optional annotation categories are added if present in the input
    # array
@@ -456,7 +468,7 @@ def _build_occurrence_array(hyd_indices, mobile_bond_list):
    """
    Build the so-called `occurrence_array` whose purpose is to store the
    amount of hydrogen atoms bound to a certain heavy atom in the
-   `subject_array`.
+   `subject_array` in an indirect manner.
    The `occurrence_array` stores the amount of hydrogen atoms bound to a
    considered heavy atom in the following way:
    Each row represents one central atom carrying hydrogen and each entry
@@ -551,7 +563,7 @@ def _build_occurrence_array(hyd_indices, mobile_bond_list):
    return (occurrence_array, unique_atom_ind_car_hyd)
 
 def _construct_fragments(
-   counter, amino_hyd_bool, res_starts, fixed_bond_list,
+   res_counter, amino_hyd_bool, res_starts, fixed_bond_list,
    subject_length_zero_axis, subject_atom_names, subject_coords,
    atom_names_carrying_hyd, ref_atom_names, ref_coords,
    atom_array_coords, subject_elements, monomer_class, res_pos
@@ -566,7 +578,7 @@ def _construct_fragments(
    atoms.
    Parameters
    ----------
-   counter: int
+   res_counter: int
       Variable that keeps track of the number the currently considered
       residue has in the sequence of all residues. In case of an amino
       acid whose amino group is involved in a peptide bond, it is
@@ -711,11 +723,17 @@ def _construct_fragments(
       if subject_atom_names[i] in atom_names_carrying_hyd:
          fixed_fragment = np.array([])
          binding_partners, types = fixed_bond_list.get_bonds(i)
+         # Detecting nitrogen atom of an amino group that is involved in
+         # a peptide bond
          if amino_hyd_bool and subject_atom_names[i] == "N":
+            # The purpose of the variable `f_fragment_indices` is to
+            # store the indices of heavy atoms forming the desired
+            # fragment so that the respective coordinates can be
+            # retrieved via a loop that iterates over the indices
             f_fragment_indices = np.append(
                binding_partners, np.array([i])
             )
-            mobile_fragment = amino_fragment
+            mobile_fragment = AMINO_FRAGMENT
             for i in f_fragment_indices:
                fixed_fragment = np.append(
                   fixed_fragment,
@@ -725,7 +743,7 @@ def _construct_fragments(
             # can't be accessed via `fixed_bond_list`
             # It occupies always the third position in an amino
             # acid's AtomArray
-            previous_start = res_starts[counter - 1]
+            previous_start = res_starts[res_counter - 1]
             fixed_fragment = np.insert(
                fixed_fragment,
                obj=0,
@@ -754,12 +772,12 @@ def _construct_fragments(
                   fixed_bond_list.get_bonds(binding_partners[0])
                if (
                   # Accounting for terminal double bond
-                  types[0] == 2
+                  types[0] == BondType.DOUBLE
                   or
                   # Accounting for aromatic and therefore actually
                   # cyclic systems of which one heavy atom has been
                   # removed
-                  types[0] == 5
+                  types[0] == BondType.AROMATIC
                   or
                   # Accounting for terminal single bonds involved in
                   # mesomeric systems
@@ -831,9 +849,8 @@ def _construct_fragments(
 def _superimpose_hydrogen(
    fragment_list, subject_atom_names, subject_coords,
    ref_res_array, occurrence_array, hyd_indices, res_array_with_hyd,
-   indices_of_added_hyd, amino_hydrogen, amino_hyd_bool,
-   global_bond_array, id_counter, atom_count, monomer_class,
-   res_pos
+   indices_of_added_hyd, amino_hyd_bool, global_bond_array, id_counter,
+   atom_count, monomer_class, res_pos
 ):
    """
    Perform superimposition between the fixed and mobile fragments with
@@ -874,9 +891,6 @@ def _superimpose_hydrogen(
    indices_of_added_hyd: list
       The indices of the hydrogen atoms added to the so-called
       `res_array_with_hyd`.
-   amino_hydrogen: :class:`Atom`
-      The hydrogen atom of the artificially constructed fragment for
-      peptide bonds.
    amino_hyd_bool: bool
       Boolean value indicating whether a considered residue is an amino
       acid and additionally has an amino group involved in a peptide
@@ -961,7 +975,7 @@ def _superimpose_hydrogen(
          if (
             amino_hyd_bool and subject_atom_names[heavy_atom_idx] == "N"
          ):
-            mob_central_coord = amino_fragment[2]
+            mob_central_coord = AMINO_FRAGMENT[2]
          else:
             mob_central_coord = ref_res_array.coord[
                ref_res_array.atom_name == \
@@ -983,7 +997,7 @@ def _superimpose_hydrogen(
                and
                subject_atom_names[heavy_atom_idx] == "N"
             ):
-               superimposed = amino_hydrogen.copy()
+               superimposed = AMINO_HYDROGEN.copy()
             else:
                superimposed = ref_res_array[k].copy()
             superimposed.coord -= mob_central_coord
@@ -1052,6 +1066,21 @@ def add_hydrogen(atom_array):
    Add hydrogen atoms to a given AtomArray inserted into the function
    ('atom_array') based on comparison of the respective structure in the
    Chemical Component Dictionary.
+   Parameters
+   ----------
+   atom_array: :class:`AtomArray`
+      A structure lacking hydrogen atoms and which hydrogen atoms are
+      supposed to be added to. It must consist of entries of the
+      Chemical Component Dictionary in order for the procedure to work.
+   Returns
+   -------
+   atom_array_with_hyd: :class:`AtomArray`
+      The structure inserted into the function with added hydrogen
+      atoms. Note that the position of rotatable hydrogen atoms is
+      optimized but requires application of the function
+      `relax_hydrogen`.
+   Notes
+   -----
    This function is useful for structures that have been determined
    experimentally, e. g. by x-ray crystallography and therefore lack
    the position of hydrogen atoms. This is oftentimes the case with
@@ -1070,19 +1099,6 @@ def add_hydrogen(atom_array):
    For peptide bonds, hydrogen addition is based on values for bond
    angles and bond lengths of the peptide bond taken from literature.
    [1]_
-   Parameters
-   ----------
-   atom_array: :class:`AtomArray`
-      A structure lacking hydrogen atoms and which hydrogen atoms are
-      supposed to be added to. It must consist of entries of the
-      Chemical Component Dictionary in order for the procedure to work.
-   Returns
-   -------
-   atom_array_with_hyd: :class:`AtomArray`
-      The structure inserted into the function with added hydrogen
-      atoms. Note that the position of rotatable hydrogen atoms is
-      optimized but requires application of the function
-      `relax_hydrogen`.
    References
    ----------
    .. [1] H-D Jakubke and H Jeschkeit,
@@ -1105,7 +1121,7 @@ def add_hydrogen(atom_array):
 
    # The initial atom is just inserted in order to enable concatenation
    # and is later neglected by slicing
-   atom_array_with_hyd = array([Atom([0,0,0])])
+   atom_array_with_hyd = AtomArray(1)
 
    # Optional annotation categories present in the input must be added
    # to the output as they otherwise get lost in the process of
@@ -1162,11 +1178,11 @@ def add_hydrogen(atom_array):
    atom_count = atom_array.bonds.get_atom_count()
    id_counter = 0
 
-   for counter, start in enumerate(res_starts):
-      if counter == res_starts.shape[0] - 1:
+   for res_counter, start in enumerate(res_starts):
+      if res_counter == res_starts.shape[0] - 1:
          break
       subject_start = start
-      subject_end = res_starts[counter + 1]
+      subject_end = res_starts[res_counter + 1]
       subject_array = atom_array[subject_start:subject_end]
 
       # Obtaining reference AtomArray from the Chemical Components
@@ -1197,7 +1213,7 @@ def add_hydrogen(atom_array):
       het_bool_value = subject_array.hetero[0]
       
       hyd_func_return = _gather_hyd_indices(
-         counter, start, first_res_start, last_res_start, res_starts,
+         res_counter, start, first_res_start, last_res_start, res_starts,
          chain_ids, ref_res_array, considered_chain_id, het_bool_value,
          aa_bool_value, res_name
       )
@@ -1245,7 +1261,7 @@ def add_hydrogen(atom_array):
       ref_coords = ref_res_array.coord
 
       fragment_list = _construct_fragments(
-         counter, amino_hyd_bool, res_starts, fixed_bond_list,
+         res_counter, amino_hyd_bool, res_starts, fixed_bond_list,
          subject_length_zero_axis, subject_atom_names, subject_coords,
          atom_names_carrying_hyd, ref_atom_names, ref_coords,
          atom_array_coords, subject_elements, monomer_class, res_pos
@@ -1254,9 +1270,9 @@ def add_hydrogen(atom_array):
       superimpose_func_return = _superimpose_hydrogen(
          fragment_list, subject_atom_names, subject_coords,
          ref_res_array, occurrence_array, hyd_indices,
-         res_array_with_hyd, indices_of_added_hyd, amino_hydrogen,
-         amino_hyd_bool, global_bond_array, id_counter, atom_count,
-         monomer_class, res_pos
+         res_array_with_hyd, indices_of_added_hyd, amino_hyd_bool,
+         global_bond_array, id_counter, atom_count, monomer_class,
+         res_pos
       )
       res_array_with_hyd = superimpose_func_return[0]
       id_counter = superimpose_func_return[1]
