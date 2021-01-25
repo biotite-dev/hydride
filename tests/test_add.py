@@ -67,6 +67,7 @@ def test_hyd_position(molecule_id):
     fragments with at least three atoms such as aromatic or cyclic
     compounds are chosen in this test.
     """
+    random.seed(0)
     molecule = residue(molecule_id)
     # Perform translation of the molecule along the three axes
     translation = random.uniform(-100, 100, 3)
@@ -126,6 +127,7 @@ def test_rotational_freedom(molecule_id):
     )
     # Now subjecting molecule to spatial modification
     # Perform translation of the molecule along the three axes
+    random.seed(0)
     translation = random.uniform(-100, 100, 3)
     molecule.coord = molecule.coord + np.array(
         [translation[0], translation[1], translation[2]]
@@ -166,6 +168,7 @@ def test_terminal_double_bond():
     arginine = residue("ARG")
     # Subjecting the molecule to translation and rotation
     # Perform translation of the molecule along the three axes
+    random.seed(0)
     translation = random.uniform(-100, 100, 3)
     arginine.coord = arginine.coord + np.array(
         [translation[0], translation[1], translation[2]]
@@ -286,6 +289,7 @@ def test_missing_heavy_atoms():
     freedom terminal groups usually entail leads to erroneous results.
     """
     benzene = residue("BNZ")
+    random.seed(0)
     translation = random.uniform(-100, 100, 3)
     benzene.coord = benzene.coord + np.array(
         [translation[0], translation[1], translation[2]]
@@ -380,6 +384,7 @@ def test_order_differing_from_ccd():
     """
     lysine = residue("LYS")
     lysine_coord_1 = lysine.coord[lysine.element == "H"]
+    random.seed(0)
     translation = random.uniform(-100, 100, 3)
     lysine.coord = lysine.coord + np.array(
         [translation[0], translation[1], translation[2]]
