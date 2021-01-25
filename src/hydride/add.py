@@ -10,7 +10,7 @@ addition to small molecules / ligands as well as biological
 macromolecules like proteins and nucleic acids.
 """
 
-__name__ = "hydride.add"
+__name__ = "hydride"
 __author__ = "Jacob Marcel Anter"
 __all__ = ["add_hydrogen"]
 
