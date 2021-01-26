@@ -480,11 +480,9 @@ def _create_atom_array_including_hyd(
 def _build_occurrence_array(hyd_indices, mobile_bond_list):
    """
    Build the so-called `occurrence_array` whose purpose is to store the
-   amount of hydrogen atoms bound to a certain heavy atom in the
-   `subject_array` in an indirect manner.
+   indices of the respective heavy atoms according to the amount of
+   hydrogen atoms bound to them.
 
-   The `occurrence_array` stores the amount of hydrogen atoms bound to a
-   considered heavy atom in the following way:
    Each row represents one central atom carrying hydrogen and each entry
    unequal to -1 (or each entry corresponding to the respective atom's
    index in the reference array) represents one hydrogen atom bound to
@@ -728,6 +726,13 @@ def _construct_fragments(
             # across the whole guanidino group, the nitrogen atom of the
             # guanidino group formally having a single bond ("NH1") must
             # be treated as having a double bond as well
+            # However, oxygen and sulfur are excluded from the detection
+            # of terminal single bonds with partial double bond
+            # character as the formulation of resonance formulas of
+            # e. g. the phenol ring of tyrosine would leead to a
+            # positively charged oxygen atom, which is chemically
+            # unacceptable as oxygen has a very high electrongativity,
+            # resulting in destabilisation
             if binding_partners.shape[0] == 1:
                neighbour_binding_partners, neighbour_types = \
                   fixed_bond_list.get_bonds(binding_partners[0])
@@ -742,13 +747,9 @@ def _construct_fragments(
                   or
                   # Accounting for terminal single bonds involved in
                   # mesomeric systems
+                  # Only nitrogen is considered for the above explained
+                  # reason
                   (subject_elements[i] == "N"
-                     and (2 in neighbour_types or 5 in neighbour_types))
-                  or
-                  (subject_elements[i] == "O"
-                     and (2 in neighbour_types or 5 in neighbour_types))
-                  or
-                  (subject_elements[i] == "S"
                      and (2 in neighbour_types or 5 in neighbour_types))
                ):
                   f_fragment_indices = np.append(
@@ -1080,9 +1081,8 @@ def add_hydrogen(atom_array):
    has_occupancy_annotation = False
    has_b_factor_annotation = False
 
-   # The initial atom is just inserted in order to enable concatenation
-   # and is later neglected by slicing
-   atom_array_with_hyd = AtomArray(1)
+   # Initializing AtomArray in order to enable concatenation
+   atom_array_with_hyd = AtomArray(0)
 
    # Optional annotation categories present in the input must be added
    # to the output as they otherwise get lost in the process of
@@ -1257,7 +1257,6 @@ def add_hydrogen(atom_array):
          f"Therefore, hydrogen addition for those residues is omitted.",
          UserWarning
       )
-   atom_array_with_hyd = atom_array_with_hyd[1:]
    atom_array_with_hyd.bonds = BondList(
       atom_count, global_bond_array
    )
