@@ -891,6 +891,45 @@ def _superimpose_hydrogen(
       output array to its BondList.
    """
 
+   # creating a dictionary which lists the names of terminal heavy
+   # atoms, i. e. heavy atoms having only one binding partner for the
+   # individual amino acids
+   # The nitrogen atom of the alpha amino group is not listed as the
+   # case of incomplete peptide bonds is handled by a try/except
+   # statement
+   terminal_atom_names = {
+      "ALA": ("CB"),
+      # In the case of arginine, an extension of the terminal fragments
+      # is performed as geometrical restraints apply due to
+      # delocalisation of pi electrons
+      "ARG": (),
+      "ASN": ("ND2"),
+      "ASP": ("OD2"),
+      "CYS": ("SG"),
+      "GLU": ("OE2"),
+      "GLN": ("NE2"),
+      # If incorporated in a polypeptide chain, glycine does not possess
+      # groups with rotational freedom
+      "GLY": (),
+      # The same applies to histidine
+      "HIS": (),
+      "ILE": ("CG2", "CD1"),
+      "LEU": ("CD1", "CD2"),
+      "LYS": ("NZ"),
+      "MET": ("CE"),
+      # Phenylalanine does neither possess groups with rotational
+      # freedom if involved in a polypeptide chain
+      "PHE": (),
+      # Neither does proline
+      "PRO": (),
+      "SER": ("OG"),
+      "THR": ("OG1", "CG2"),
+      # Neither does tryptophane
+      "TRP": (),
+      "TYR": ("OH"),
+      "VAL": ("CG1", "CG2")
+   }
+
    central_counter = 0
    start_slice = 0
    end_slice = 0
@@ -903,6 +942,7 @@ def _superimpose_hydrogen(
    insertion_index = heavy_atom_array.shape[0]
 
    for index in range(0, len(fragment_list)):
+      heavy_atom_not_carrying_hyd_missing = False
       # In case that a heavy atom carrying hydrogen is present in the
       # reference, but not in the subject array, correct slicing of
       # the array containing the hydrogen indices must be ensured by
@@ -927,6 +967,47 @@ def _superimpose_hydrogen(
          mobile_fragment = fragment_list[index][1]
          heavy_atom_idx = fragment_list[index][2]
 
+         # In some PDB  structures, heavy atoms are missing
+         # This is problematic if e. g. a heavy atom actually having
+         # three binding partners has only two binding partners as this
+         # entails rotational freedom, leading to an incorrect placement
+         # of hydrogen atoms
+         # Whether a fragment seeming to originate from a terminal group
+         # in reality originates from a terminal group is verified by
+         # checking whether the name of the respective heavy atom
+         # hydrogen is supposed to be added to is contained in the tuple
+         # of terminal atom names of the respective amino acid accessed
+         # via the dictionary `terminal_atom_names`
+         # If the case occurs that a seemingly terminal group is not a
+         # terminal group in reality, hydrogen addition is omitted for
+         # this fragment
+         pseudo_terminal_atom_name = subject_atom_names[heavy_atom_idx]
+         if (
+            (fixed_fragment.shape[0] == 2)
+            and
+            not ref_res_array.hetero[0]
+            and
+            (np.count_nonzero(ref_res_array.element != "H") > 2)
+            and
+            (pseudo_terminal_atom_name != "N")
+            and
+            (pseudo_terminal_atom_name != "OXT")
+         ):
+            res_name = ref_res_array.res_name[0]
+            terminal_name_tuple = terminal_atom_names[res_name]
+            if pseudo_terminal_atom_name not in terminal_name_tuple:
+               heavy_atom_not_carrying_hyd_missing = True
+         
+         # If a fragment comprises merely one atom although the
+         # reference comprises more than one heavy atom, hydrogen
+         # addition is omitted either
+         if (
+            fixed_fragment.shape[0] == 1
+            and
+            (np.count_nonzero(ref_res_array.element != "H") != 1)
+         ):
+            heavy_atom_not_carrying_hyd_missing = True
+
          # Move fragments in such a way that the atom carrying the
          # hydrogen is placed at the origin, i. e. (0,0,0)
          fix_central_coord = subject_coords[heavy_atom_idx]
@@ -943,12 +1024,26 @@ def _superimpose_hydrogen(
          mob_centered = mobile_fragment - mob_central_coord
          
          # Performing superimposition
-         rotation = _superimpose(fix_centered, mob_centered)
+         # This try/except statement's purpose is to cover the case that
+         # the input structure lacks heavy atoms in the vicinity of a
+         # peptide bond, resulting in a fragment pair where the
+         # fragments possess different shapes
+         # The peptide bond is the only case in which this might occur
+         # as the so-called `AMINO_FRAGMENT` has a fixed size and is not
+         # adjusted to the input structure
+         try:
+            rotation = _superimpose(fix_centered, mob_centered)
+         except ValueError:
+            heavy_atom_not_carrying_hyd_missing = True
          num_geminal_hyd = np.count_nonzero(
             occurrence_array[central_counter] != -1
          )
          central_counter += 1
          end_slice += num_geminal_hyd
+         if heavy_atom_not_carrying_hyd_missing:
+            reduction += num_geminal_hyd
+            start_slice += num_geminal_hyd
+            continue
          for k in hyd_indices[start_slice:end_slice]:
             secondary_index = indices_of_added_hyd[primary_index]
             if (
@@ -1012,7 +1107,7 @@ def _superimpose_hydrogen(
          start_slice += num_geminal_hyd
    # Adding number of added hydrogen atoms as well as number of heavy
    # atoms comprised in the 'res_array_with_hyd' to the `id_counter`
-   id_counter += res_array_with_hyd.shape[0] - reduction
+   id_counter += (res_array_with_hyd.shape[0] - reduction)
    
    return (
       res_array_with_hyd, id_counter, global_bond_array, atom_count
@@ -1060,6 +1155,12 @@ def add_hydrogen(atom_array):
    For peptide bonds, hydrogen addition is based on values for bond
    angles and bond lengths of the peptide bond taken from literature.
    [1]_
+
+   Also note that deuterium atoms potentially occurring in the input
+   structure, which is oftentimes the case with structures determined by
+   nuclear magnetic resonance spectroscopy or neutron diffraction,
+   should be removed prior to application of this function to the
+   protein structure as otherwise errors might occur.
 
    References
    ----------
