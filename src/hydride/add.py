@@ -18,10 +18,6 @@ def add_hydrogen(atoms, fragment_library):
       )
    
    hydrogen_coord = fragment_library.calculate_hydrogen_coord(atoms)
-   print("\n"*5)
-   for e in hydrogen_coord:
-      print(e)
-      print()
    flattened_hydrogen_coord = []
    for coord in hydrogen_coord:
       flattened_hydrogen_coord += list(coord)
