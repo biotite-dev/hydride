@@ -45,7 +45,7 @@ class FragmentLibrary:
                 refl_centered_hydrogen_coord[..., 0] *= -1
                 self._frag_dict[(
                     central_element, central_charge, stereo, tuple(bond_types)
-                )] = (centered_heavy_coord, centered_hydrogen_coord)
+                )] = (refl_centered_heavy_coord, refl_centered_hydrogen_coord)
         
     
     def get_fragment_coord(self, central_element, central_charge,
