@@ -11,7 +11,24 @@ import pickle
 from setuptools import setup, find_packages
 import biotite.structure.info as info
 from biotite.structure.info.misc import _res_names
-from src.hydride import FragmentLibrary
+from src.hydride import FragmentLibrary, AtomNameLibrary
+
+
+# Molecules that appear is most structures
+# Hence, there is a high importance to get the hydrogen conformations
+# for these molecules right
+# Fragments from these molecules will overwrite any existing fragments
+# from the standard library
+PROMINENT_MOLECULES = [
+    # Amino acids
+    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
+    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
+    # Nucleotides
+    "A", "C", "G", "T",
+    # Solvent
+    "HOH",
+]
+
 
 original_wd = os.getcwd()
 # Change directory to setup directory to ensure correct file identification
@@ -36,8 +53,9 @@ with open(join("src", "hydride", "__init__.py")) as init_file:
 
 
 # Compile fragment library
-mol_names = list(_res_names.keys())
-standard_library = FragmentLibrary()
+mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
+std_fragment_library = FragmentLibrary()
+std_name_library = AtomNameLibrary()
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     for i, mol_name in enumerate(mol_names):
@@ -49,10 +67,13 @@ with warnings.catch_warnings():
             mol = info.residue(mol_name)
         except KeyError:
             continue
-        standard_library.add_molecule(mol)
+        std_fragment_library.add_molecule(mol)
+        std_name_library.add_molecule(mol)
 print("Compiling fragment library... Done" + " " * 20)
 with open(join("src", "hydride", "fragments.pickle"), "wb") as fragments_file:
-    pickle.dump(standard_library._frag_dict, fragments_file)
+    pickle.dump(std_fragment_library._frag_dict, fragments_file)
+with open(join("src", "hydride", "names.pickle"), "wb") as names_file:
+    pickle.dump(std_name_library._name_dict, names_file)
 
 
 setup(
