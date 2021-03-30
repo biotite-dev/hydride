@@ -8,7 +8,7 @@ __all__ = ["add_hydrogen"]
 
 import numpy as np
 import biotite.structure as struc
-from .library import FragmentLibrary
+from .fragments import FragmentLibrary
 
 
 def add_hydrogen(atoms, fragment_library=None):
