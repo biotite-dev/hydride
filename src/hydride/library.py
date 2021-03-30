@@ -3,17 +3,33 @@
 # information.
 
 __name__ = "hydride"
-__author__ = "Patrick Kunzmann, Jacob Marcel Anter"
+__author__ = "Patrick Kunzmann"
 __all__ = ["FragmentLibrary"]
 
+from os.path import join, dirname, abspath
 import warnings
+import pickle
+from biotite.structure.error import BadStructureError
 import numpy as np
 
 
 class FragmentLibrary:
 
+    _std_library = None
+
     def __init__(self):
         self._frag_dict = {}
+    
+
+    @staticmethod
+    def standard_library():
+        if FragmentLibrary._std_library is None:
+            FragmentLibrary._std_library = FragmentLibrary()
+            file_name = join(dirname(abspath(__file__)), "fragments.pickle")
+            with open(file_name, "rb") as fragments_file:
+                FragmentLibrary._std_library._frag_dict \
+                    = pickle.load(fragments_file)
+        return FragmentLibrary._std_library
     
 
     def add_molecule(self, molecule):
@@ -131,6 +147,11 @@ class FragmentLibrary:
 
 
 def _fragment(structure):
+    if structure.bonds is None:
+        raise BadStructureError(
+            "The input structure must have an associated BondList"
+        )
+
     fragments = [None] * structure.array_length()
     
     all_bond_indices, all_bond_types = structure.bonds.get_all_bonds()

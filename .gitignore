@@ -1,8 +1,10 @@
 # Ignore the distribution directories
 dist/
 build/
-doc/_build/
 *.egg-info/
+
+# Ignore fragment and atom name library
+src/hydride/*.pickle
 
 # Ignore folder created by mypy
 .mypy_cache/
