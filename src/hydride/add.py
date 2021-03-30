@@ -88,7 +88,7 @@ def add_hydrogen(atoms, fragment_library=None):
       ],
       axis=-1
    )
-   hydrogen_bonds = np.array(hydrogen_bonds, dtype=np.uint32)
+   hydrogen_bonds = np.array(hydrogen_bonds, dtype=np.uint32).reshape(-1, 2)
    # All bonds to hydrogen atoms are single bonds
    hydrogen_bonds = np.stack(
       [
