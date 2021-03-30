@@ -24,7 +24,7 @@ PROMINENT_MOLECULES = [
     "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
     "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
     # Nucleotides
-    "A", "C", "G", "T",
+    "A", "C", "G", "T", "U", "DA", "DC", "DG", "DT", "DU", 
     # Solvent
     "HOH",
 ]
@@ -55,7 +55,6 @@ with open(join("src", "hydride", "__init__.py")) as init_file:
 # Compile fragment library
 mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
 std_fragment_library = FragmentLibrary()
-std_name_library = AtomNameLibrary()
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     for i, mol_name in enumerate(mol_names):
@@ -68,10 +67,28 @@ with warnings.catch_warnings():
         except KeyError:
             continue
         std_fragment_library.add_molecule(mol)
-        std_name_library.add_molecule(mol)
 print("Compiling fragment library... Done" + " " * 20)
 with open(join("src", "hydride", "fragments.pickle"), "wb") as fragments_file:
     pickle.dump(std_fragment_library._frag_dict, fragments_file)
+
+# Compile atom name library
+mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
+std_name_library = AtomNameLibrary()
+with warnings.catch_warnings():
+    warnings.simplefilter("ignore")
+    # To reduce the size of the atom name library, only atom names
+    # from prominent molecules are stored
+    for i, mol_name in enumerate(PROMINENT_MOLECULES):
+        print(
+            f"Compiling atom name library... ({i+1}/{len(mol_names)})",
+            end="\r"
+        )
+        try:
+            mol = info.residue(mol_name)
+        except KeyError:
+            continue
+        std_name_library.add_molecule(mol)
+print("Compiling atom name library... Done" + " " * 20)
 with open(join("src", "hydride", "names.pickle"), "wb") as names_file:
     pickle.dump(std_name_library._name_dict, names_file)
 
