@@ -59,18 +59,19 @@ class AtomNameLibrary:
         else:
             i = 0
         
+        # TODO: Better naming: C42-> H42, H42A, H42B
         # The generated hydrogen atom name is one character longer
         # than the heavy atom name, but the hydrogen atom name must
         # not exceed 4 characters (PDB limit)
         if len(heavy_atom_name) > 1 and len(heavy_atom_name) < 4:
-            # e.g. CA -> HA1, HA2, ...
+            # e.g. CA -> HA, HA2, HA3, ...
             suffix = heavy_atom_name[1:]
             while True:
                 yield f"H{suffix}{i+1}"
                 i += 1
 
         else:
-            # X -> H1, H2, ...
+            # X -> H, H2, H3, ...
             while True:
                 yield f"H{i+1}"
                 i += 1
