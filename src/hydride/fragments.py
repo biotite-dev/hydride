@@ -34,7 +34,7 @@ class FragmentLibrary:
 
     def add_molecule(self, molecule):
         fragments = _fragment(molecule)
-        for fragment in fragments:
+        for i, fragment in enumerate(fragments):
             if fragment is None:
                 continue
             (
@@ -45,13 +45,16 @@ class FragmentLibrary:
             # so the central heavy atom is at origin
             centered_heavy_coord = heavy_coord - center_coord
             centered_hydrogen_coord = hydrogen_coord - center_coord
-            # TODO Maybe use multiple coordinate sets
-            # representing different conformations
-            self._frag_dict[(
-                central_element, central_charge, stereo, tuple(bond_types)
-            )] = (centered_heavy_coord, centered_hydrogen_coord)
+            self._frag_dict[
+                (central_element, central_charge, stereo, tuple(bond_types))
+            ] = (
+                # Information about the origin of the fragment
+                # # for debugging purposes 
+                molecule.res_name[i], molecule.atom_name[i],
+                # The interesting information
+                centered_heavy_coord, centered_hydrogen_coord
+            )
             if stereo != 0:
-                pass
                 # Also include the opposite enantiomer in the library
                 # by reflecting the coordinates along an arbitrary axis
                 stereo *= -1
@@ -61,7 +64,10 @@ class FragmentLibrary:
                 refl_centered_hydrogen_coord[..., 0] *= -1
                 self._frag_dict[(
                     central_element, central_charge, stereo, tuple(bond_types)
-                )] = (refl_centered_heavy_coord, refl_centered_hydrogen_coord)
+                )] = (
+                    molecule.res_name[i], molecule.atom_name[i],
+                    refl_centered_heavy_coord, refl_centered_hydrogen_coord
+                )
         
     
     def get_fragment_coord(self, central_element, central_charge,
@@ -114,7 +120,7 @@ class FragmentLibrary:
             if hit is None:
                 warnings.warn(f"Missing fragment for atom at position {i}")
                 ref_hydrogen_coord[i] = np.zeros(0, dtype=np.float32)
-            ref_heavy_coord, ref_hydrogen_coord = hit
+            _, _, ref_heavy_coord, ref_hydrogen_coord = hit
             ref_frag_heavy_coord[i] = ref_heavy_coord
             ref_frag_hydrogen_coord[i, :len(ref_hydrogen_coord)] \
                 = ref_hydrogen_coord
