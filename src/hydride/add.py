@@ -9,11 +9,14 @@ __all__ = ["add_hydrogen"]
 import numpy as np
 import biotite.structure as struc
 from .fragments import FragmentLibrary
+from .names import AtomNameLibrary
 
 
-def add_hydrogen(atoms, fragment_library=None):
+def add_hydrogen(atoms, fragment_library=None, name_library=None):
    if fragment_library is None:
       fragment_library = FragmentLibrary.standard_library()
+   if name_library is None:
+      name_library = AtomNameLibrary.standard_library()
 
    if (atoms.element == "H").any():
       raise struc.BadStructureError(
@@ -62,14 +65,17 @@ def add_hydrogen(atoms, fragment_library=None):
       # Set annotation and coordinates for hydrogen atoms
       for j in range(start, stop):
          hydrogen_coord_for_atom = hydrogen_coord[j]
+         hydrogen_name_generator = name_library.generate_hydrogen_names(
+            atoms.res_name[j], atoms.atom_name[j]
+         )
          for coord in hydrogen_coord_for_atom:
             hydrogenated_atoms.coord[p] = coord
-            hydrogenated_atoms.chain_id[p] = atoms.chain_id[start]
-            hydrogenated_atoms.res_id[p] = atoms.res_id[start]
-            hydrogenated_atoms.ins_code[p] = atoms.ins_code[start]
-            hydrogenated_atoms.res_name[p] = atoms.res_name[start]
-            hydrogenated_atoms.hetero[p] = atoms.hetero[start]
-            hydrogenated_atoms.atom_name[p] = "H"
+            hydrogenated_atoms.chain_id[p] = atoms.chain_id[j]
+            hydrogenated_atoms.res_id[p] = atoms.res_id[j]
+            hydrogenated_atoms.ins_code[p] = atoms.ins_code[j]
+            hydrogenated_atoms.res_name[p] = atoms.res_name[j]
+            hydrogenated_atoms.hetero[p] = atoms.hetero[j]
+            hydrogenated_atoms.atom_name[p] = next(hydrogen_name_generator)
             hydrogenated_atoms.element[p] = "H"
             heavy_index = index_mapping[j]
             hydrogen_index = p
