@@ -200,6 +200,15 @@ def _fragment(structure):
             # 4 times repeated
             heavy_coord = np.repeat(coord[np.newaxis, i, :], 3, axis=0)
             stereo = 0
+        else:
+            warnings.warn(
+                f"Atom '{structure.atom_name[i]}' in "
+                f"'{structure.res_name[i]}' has more than 4 bonds to "
+                f"heavy atoms ({n_heavy_bonds}) and is ignored"
+            )
+            heavy_coord = np.repeat(coord[np.newaxis, i, :], 3, axis=0)
+            hydrogen_coord = np.zeros((0, 3), dtype=np.float32)
+            stereo = 0
         central_coord = coord[i]
         fragments[i] = (
             elements[i], charges[i], stereo, heavy_types,
@@ -209,33 +218,18 @@ def _fragment(structure):
 
 
 def _get_rotation_matrices(fixed, mobile):
-    # TODO Use proper vectorization
-    matrices = []
-    for x, y in zip(fixed, mobile):
-        if np.any(np.isnan(x)) or np.any(np.isnan(y)):
-            matrices.append(np.full((3, 3), np.nan))
-            continue
-        # Calculate covariance matrix
-        cov = np.dot(x.T, y)
-        v, s, w = np.linalg.svd(cov)
-        # Remove possibility of reflected atom coordinates
-        if np.linalg.det(v) * np.linalg.det(w) < 0:
-            v[:,-1] *= -1
-        matrix = np.dot(v,w)
-        matrices.append(matrix)
-    return np.array(matrices)
+    # Calculate cross-covariance matrices
+    cov = np.sum(fixed[:,:,:,np.newaxis] * mobile[:,:,np.newaxis,:], axis=1)
+    v, s, w = np.linalg.svd(cov)
+    # Remove possibility of reflected atom coordinates
+    reflected_mask = (np.linalg.det(v) * np.linalg.det(w) < 0)
+    v[reflected_mask, :, -1] *= -1
+    matrices = np.matmul(v, w)
+    return matrices
 
 
 def _rotate(coord, matrices):
-    # TODO Use proper vectorization
-    rotated = []
-    for c, matrix in zip(coord, matrices):
-        rotated.append(np.dot(matrix, c.T).T)
-    return np.array(rotated)
-
-    coord = np.transpose(coord, (0, 2, 1))
-    print(matrices.shape)
-    print(coord.shape)
-    rotated =  np.dot(matrices, coord)
-    print(rotated.shape)
-    return np.transpose(rotated, (0, 2, 1))
+    return np.transpose(
+        np.matmul(matrices, np.transpose(coord, axes=(0, 2, 1))),
+        axes=(0, 2, 1)
+    )
