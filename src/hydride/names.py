@@ -8,6 +8,7 @@ __all__ = ["AtomNameLibrary"]
 
 from os.path import join, dirname, abspath
 import pickle
+import string
 import numpy as np
 from biotite.structure.error import BadStructureError
 
@@ -53,26 +54,45 @@ class AtomNameLibrary:
     def generate_hydrogen_names(self, heavy_res_name, heavy_atom_name):
         hydrogen_names = self._name_dict.get((heavy_res_name, heavy_atom_name))
         if hydrogen_names is not None:
+            # Hydrogen names from library
             for i, hydrogen_name in enumerate(hydrogen_names):
                 yield hydrogen_name
-            i += 1
-        else:
-            i = 0
-        
-        # TODO: Better naming: C42-> H42, H42A, H42B
-        # The generated hydrogen atom name is one character longer
-        # than the heavy atom name, but the hydrogen atom name must
-        # not exceed 4 characters (PDB limit)
-        if len(heavy_atom_name) > 1 and len(heavy_atom_name) < 4:
-            # e.g. CA -> HA, HA2, HA3, ...
-            suffix = heavy_atom_name[1:]
+            base_name = hydrogen_name[:-1]
+            number = int(hydrogen_name[-1])
             while True:
-                yield f"H{suffix}{i+1}"
-                i += 1
+                # Proceed by increasing the atom number
+                # e.g. CB -> HB1, HB2, HB3, ...
+                number += 1
+                yield f"{base_name}{number}"
 
+        
         else:
-            # X -> H, H2, H3, ...
-            while True:
-                yield f"H{i+1}"
-                i += 1
+            if heavy_atom_name[-1] in string.digits:
+                # Atom name ends with number
+                # -> assume ligand atom naming
+                # C42 -> H42, H42A, H42B
+                number = int(
+                    ''.join([c for c in heavy_atom_name if c.isdigit()])
+                )
+                yield f"H{number}"
+                i = 0
+                while True:
+                    yield f"H{number}{string.ascii_uppercase[i]}"
+                    i += 1
+            elif len(heavy_atom_name) > 1:
+                # e.g. CA -> HA, HA2, HA3, ...
+                suffix = heavy_atom_name[1:]
+                yield f"H{suffix}"
+                number = 1
+                while True:
+                    yield f"H{suffix}{number}"
+                    number += 1
+
+            else:
+                # N -> H, H2, H3, ...
+                yield "H"
+                number = 1
+                while True:
+                    yield f"H{number}"
+                    number += 1
         
