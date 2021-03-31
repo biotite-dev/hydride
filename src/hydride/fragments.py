@@ -68,16 +68,6 @@ class FragmentLibrary:
                     molecule.res_name[i], molecule.atom_name[i],
                     refl_centered_heavy_coord, refl_centered_hydrogen_coord
                 )
-        
-    
-    def get_fragment_coord(self, central_element, central_charge,
-                           bonded_elements, bonded_charges, bond_types):
-        """
-        Returns
-        -------
-        heavy_coord : ndarray, shape=(3,3), dtype=np.float32
-        hydrogen_coord : ndarray, shape=(k,3), dtype=np.float32
-        """
 
 
     def calculate_hydrogen_coord(self, structure):
@@ -160,7 +150,12 @@ def _fragment(structure):
 
     fragments = [None] * structure.array_length()
     
-    all_bond_indices, all_bond_types = structure.bonds.get_all_bonds()
+    # Use formal bond orders for fragment creation
+    # Aromaticity should not significantly influence
+    # the bond lengths or angles
+    bonds = structure.bonds.copy()
+    bonds.remove_aromaticity()
+    all_bond_indices, all_bond_types = bonds.get_all_bonds()
     elements = structure.element
     charges = structure.charge
     coord = structure.coord
