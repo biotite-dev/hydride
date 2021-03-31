@@ -1,0 +1,90 @@
+# This source code is part of the Hydride package and is distributed
+# under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
+# information.
+
+import pytest
+import numpy as np
+import biotite.structure as struc
+import biotite.structure.info as info
+import hydride
+
+
+@pytest.mark.parametrize("res_name", [
+    "BNZ", # Benzene
+    "BZF", # Benzofuran
+    "IND", # indole
+    "PZO", # Pyrazole
+    "BZI", # Benzimidazole
+    "LOM", # Thiazole
+    "P1R", # Pyrimidine
+    "ISQ", # Isoquinoline
+    "NPY", # Naphthalene
+    "AN3", # Anthracene
+    "0PY", # Pyridine
+    "4FT", # Phthalazine
+    "URA", # Uracil
+    "CHX", # Cyclohexane
+    "CN",  # Hydrogen cyanide
+    "11X"  # N-pyridin-3-ylmethylaniline
+])
+def test_hydrogen_positions(res_name):
+    """
+    Test whether the assigned hydrogen positions approximately match
+    the original hydrogen positions for a given molecule.
+    
+    All chosen molecules consist completely of heavy atoms without
+    rotational freedom for the bonded hydrogen atoms, such as aromatic
+    or cyclic compounds.
+    This is required to reproduce unambiguously the original hydrogen
+    positions, as no relaxation is performed.
+    The chosen molecules are also part of the standard fragment library
+    themselves.
+    However, due to the mere size of the CCD it is improbable that
+    a fragment in the library actually originates from the molecule it
+    is added to.
+    """
+    TOLERANCE = 0.1
+
+    library = hydride.FragmentLibrary.standard_library()
+    molecule = info.residue(res_name)
+    # Perform translation of the molecule along the three axes
+    ref_hydrogen_coord = molecule.coord[molecule.element == "H"]
+    
+    heavy_atoms = molecule[molecule.element != "H"]
+    test_hydrogen_coord = library.calculate_hydrogen_coord(heavy_atoms)
+    
+    assert len(test_hydrogen_coord) == heavy_atoms.array_length()
+    ref_index = 0
+    for hydrogen_coord in test_hydrogen_coord:
+        # The coord for all hydrogens bonded to the same heavy atom
+        if len(hydrogen_coord) == 0:
+            # No bonded hydrogen atoms -> nothing to compare
+            continue
+        elif len(hydrogen_coord) == 1:
+            # Only a single hydrogen atom
+            # -> unambiguous assignment to reference hydrogen coord
+            assert np.max(struc.distance(
+                hydrogen_coord,
+                ref_hydrogen_coord[ref_index : ref_index+1]
+            )) <= TOLERANCE
+            ref_index += 1
+        elif len(hydrogen_coord) == 2:
+            # Heavy atom has 2 hydrogen atoms
+            # -> Since the hydrogen atoms are indistinguishable,
+            # there are two possible assignment to reference hydrogens
+            try:
+                assert np.max(struc.distance(
+                    hydrogen_coord,
+                    ref_hydrogen_coord[ref_index : ref_index+2]
+                )) <= TOLERANCE
+            except AssertionError:
+                assert np.max(struc.distance(
+                    hydrogen_coord,
+                    ref_hydrogen_coord[ref_index : ref_index+2]
+                )) <= TOLERANCE
+            ref_index += 2
+        else:
+            # Heavy atom has 3 hydrogen atoms
+            # -> there is rotational freedom
+            # -> invalid test case
+            raise ValueError("Invalid test case")
