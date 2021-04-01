@@ -2,6 +2,8 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
+import itertools
+from biotite.structure.atoms import Atom
 import pytest
 import numpy as np
 import biotite.structure as struc
@@ -89,6 +91,7 @@ def test_hydrogen_positions(res_name):
             # -> invalid test case
             raise ValueError("Invalid test case")
 
+
 def test_missing_fragment():
     """
     If a molecule contains an unknown fragment, check if a warning is
@@ -120,3 +123,41 @@ def test_missing_fragment():
         # Expect missing first hydrogen due to missing fragment
         ref_hydrogen_coord[1:]
     )) <= TOLERANCE
+
+
+@pytest.mark.parametrize(
+    "lib_enantiomer, subject_enantiomer",
+    itertools.product(
+        # L-alanine and D-alanine
+        ["ALA", "DAL"],
+        ["ALA", "DAL"],
+    )
+)
+def test_stereocenter(lib_enantiomer, subject_enantiomer):
+    """
+    Test whether one enantiomer in the library is sufficient to
+    add hydrogen for both enatiomers
+    """
+    TOLERANCE = 0.1
+
+    lib = hydride.FragmentLibrary()
+    lib.add_molecule(info.residue(lib_enantiomer))
+
+    ref_model = info.residue(subject_enantiomer)
+
+    test_model = ref_model[ref_model.element != "H"]
+    # As the test case is constructed that the exact same molecule
+    # can be in the library, move the molecule to assure that
+    # correct hydrogen position calculation is not an artifact
+    np.random.seed(0)
+    test_model = struc.rotate(test_model, np.random.rand(3))
+    test_model = struc.translate(test_model, np.random.rand(3))
+    test_model, _ = hydride.add_hydrogen(test_model, fragment_library=lib)
+
+    test_model, _ = struc.superimpose(
+        ref_model, test_model, atom_mask = (test_model.element != "H")
+    )
+    ref_stereo_h_coord = ref_model.coord[ref_model.atom_name == "HA"][0]
+    test_stereo_h_coord = test_model.coord[test_model.atom_name == "HA"][0]
+
+    assert struc.distance(test_stereo_h_coord, ref_stereo_h_coord) <= TOLERANCE
