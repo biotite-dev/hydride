@@ -77,15 +77,16 @@ class FragmentLibrary:
         hydrogen_coord : ndarray, shape=(n,4,3), dtype=np.float32
             Padded with *NaN* values.
         """
-        # The subject and reference heavy atom coordinates for each fragment
-        sub_frag_center_coord = np.full(
-            (structure.array_length(), 3), np.nan, dtype=np.float32
+        # The subject and reference heavy atom coordinates
+        # for each fragment
+        sub_frag_center_coord = np.zeros(
+            (structure.array_length(), 3), dtype=np.float32
         )
-        sub_frag_heavy_coord = np.full(
-            (structure.array_length(), 3, 3), np.nan, dtype=np.float32
+        sub_frag_heavy_coord = np.zeros(
+            (structure.array_length(), 3, 3), dtype=np.float32
         )
-        ref_frag_heavy_coord = np.full(
-            (structure.array_length(), 3, 3), np.nan, dtype=np.float32
+        ref_frag_heavy_coord = np.zeros(
+            (structure.array_length(), 3, 3), dtype=np.float32
         )
         # The amount of hydrogens varies for each fragment
         # -> padding with NaN
@@ -104,16 +105,19 @@ class FragmentLibrary:
             sub_frag_heavy_coord[i] = heavy_coord
             # The hydrogen_coord can be ignored:
             # In the subject structure are no hydrogen atoms
-            hit = self._frag_dict[
+            hit = self._frag_dict.get(
                 (central_element, central_charge, stereo, tuple(bond_types))
-            ]
+            )
             if hit is None:
-                warnings.warn(f"Missing fragment for atom at position {i}")
-                ref_hydrogen_coord[i] = np.zeros(0, dtype=np.float32)
-            _, _, ref_heavy_coord, ref_hydrogen_coord = hit
-            ref_frag_heavy_coord[i] = ref_heavy_coord
-            ref_frag_hydrogen_coord[i, :len(ref_hydrogen_coord)] \
-                = ref_hydrogen_coord
+                warnings.warn(
+                    f"Missing fragment for atom '{structure.atom_name[i]}' "
+                    f"at position {i}"
+                )
+            else:
+                _, _, ref_heavy_coord, ref_hydrogen_coord = hit
+                ref_frag_heavy_coord[i] = ref_heavy_coord
+                ref_frag_hydrogen_coord[i, :len(ref_hydrogen_coord)] \
+                    = ref_hydrogen_coord
 
         # Translate the subject coordinates,
         # so the central heavy atom is at origin

@@ -88,3 +88,35 @@ def test_hydrogen_positions(res_name):
             # -> there is rotational freedom
             # -> invalid test case
             raise ValueError("Invalid test case")
+
+def test_missing_fragment():
+    """
+    If a molecule contains an unknown fragment, check if a warning is
+    raised and all other atoms are still hydrogenated.
+    """
+    TOLERANCE = 0.1
+
+    lib = hydride.FragmentLibrary.standard_library()
+
+    ref_mol = info.residue("BZI") # Benzimidazole
+    # It should not be possible to have a nitrogen at this position
+    # with a positive charge
+    ref_mol.charge[0] = 1
+    ref_hydrogen_coord = ref_mol.coord[ref_mol.element == "H"]
+
+
+    test_mol = test_mol = ref_mol[ref_mol.element != "H"]
+    with pytest.warns(
+        UserWarning, match="Missing fragment for atom 'N1' at position 0"
+    ):
+        hydrogen_coord = lib.calculate_hydrogen_coord(test_mol)
+    flattend_coord = []
+    for coord in hydrogen_coord:
+        flattend_coord += coord.tolist()
+    test_hydrogen_coord = np.array(flattend_coord)
+    
+    assert np.max(struc.distance(
+        test_hydrogen_coord,
+        # Expect missing first hydrogen due to missing fragment
+        ref_hydrogen_coord[1:]
+    )) <= TOLERANCE
