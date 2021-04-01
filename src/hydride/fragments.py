@@ -150,12 +150,7 @@ def _fragment(structure):
 
     fragments = [None] * structure.array_length()
     
-    # Use formal bond orders for fragment creation
-    # Aromaticity should not significantly influence
-    # the bond lengths or angles
-    bonds = structure.bonds.copy()
-    bonds.remove_aromaticity()
-    all_bond_indices, all_bond_types = bonds.get_all_bonds()
+    all_bond_indices, all_bond_types = structure.bonds.get_all_bonds()
     elements = structure.element
     charges = structure.charge
     coord = structure.coord
