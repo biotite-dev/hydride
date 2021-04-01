@@ -34,6 +34,7 @@ def add_hydrogen(atoms, fragment_library=None, name_library=None):
    # Create new empty AtomArray with an appropriate length for all
    # heavy and hydrogen atoms
    hydrogenated_atoms = struc.AtomArray(atoms.array_length() + count)
+   original_atom_mask = np.zeros(hydrogenated_atoms.array_length(), dtype=bool)
    # Add all annotation categories of the original AtomArray
    for category in atoms.get_annotation_categories():
       if category not in hydrogenated_atoms.get_annotation_categories():
@@ -57,6 +58,7 @@ def add_hydrogen(atoms, fragment_library=None, name_library=None):
       stop = residue_starts[i+1]
       res_length = stop - start
       index_mapping[start : stop] = np.arange(p, p + res_length)
+      original_atom_mask[p : p + res_length] = True
       hydrogenated_atoms.coord[p : p + res_length] = atoms.coord[start : stop]
       for category in atoms.get_annotation_categories():
          hydrogenated_atoms.get_annotation(category)[p : p + res_length] \
@@ -109,4 +111,4 @@ def add_hydrogen(atoms, fragment_library=None, name_library=None):
       np.concatenate([heavy_bonds, hydrogen_bonds])
    )
 
-   return hydrogenated_atoms
+   return hydrogenated_atoms, original_atom_mask
