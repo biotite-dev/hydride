@@ -13,6 +13,102 @@ import hydride
 from .util import data_dir
 
 
+@pytest.mark.parametrize("res_name", [
+    "BNZ", # Benzene
+    "BZF", # Benzofuran
+    "IND", # indole
+    "PZO", # Pyrazole
+    "BZI", # Benzimidazole
+    "LOM", # Thiazole
+    "P1R", # Pyrimidine
+    "ISQ", # Isoquinoline
+    "NPY", # Naphthalene
+    "AN3", # Anthracene
+    "0PY", # Pyridine
+    "4FT", # Phthalazine
+    "URA", # Uracil
+    "CHX", # Cyclohexane
+    "CN",  # Hydrogen cyanide
+    "11X"  # N-pyridin-3-ylmethylaniline
+])
+def test_hydrogen_positions(res_name):
+    """
+    Test whether the assigned hydrogen positions approximately match
+    the original hydrogen positions for a given molecule.
+    
+    All chosen molecules consist completely of heavy atoms without
+    rotational freedom for the bonded hydrogen atoms, such as aromatic
+    or cyclic compounds.
+    This is required to reproduce unambiguously the original hydrogen
+    positions, as no relaxation is performed.
+    The chosen molecules are also part of the standard fragment library
+    themselves.
+    However, due to the mere size of the CCD it is improbable that
+    a fragment in the library actually originates from the molecule it
+    is added to.
+    """
+    TOLERANCE = 0.1
+
+    library = hydride.FragmentLibrary.standard_library()
+    ref_molecule = info.residue(res_name)
+
+    test_molecule = ref_molecule[ref_molecule.element != "H"]
+    test_molecule, _ = hydride.add_hydrogen(test_molecule)
+
+    for category in ref_molecule.get_annotation_categories():
+        if category == "atom_name":
+            # Atom names are tested separately
+            continue
+        try:
+            assert np.all(
+                test_molecule.get_annotation(category) ==
+                ref_molecule.get_annotation(category)
+            )
+        except AssertionError:
+            print("Failing category:", category)
+            raise
+    # Atom names are only guessed
+    # -> simply check if the atoms names are unique
+    assert len(np.unique(test_molecule.atom_name)) \
+        == len(test_molecule.atom_name)
+    
+    for heavy_i in np.where(ref_molecule.element != "H")[0]:
+        ref_bond_i, _ = ref_molecule.bonds.get_bonds(heavy_i)
+        ref_h_indices = ref_bond_i[ref_molecule.element[ref_bond_i] == "H"]
+        test_bond_i, _ = test_molecule.bonds.get_bonds(heavy_i)
+        test_h_indices = test_bond_i[test_molecule.element[test_bond_i] == "H"]
+        # The coord for all hydrogens bonded to the same heavy atom
+        if len(ref_h_indices) == 0:
+            # No bonded hydrogen atoms -> nothing to compare
+            continue
+        elif len(ref_h_indices) == 1:
+            # Only a single hydrogen atom
+            # -> unambiguous assignment to reference hydrogen coord
+            assert np.max(struc.distance(
+                test_molecule.coord[test_h_indices],
+                ref_molecule.coord[ref_h_indices],
+            )) <= TOLERANCE
+        elif len(ref_h_indices) == 2:
+            # Heavy atom has 2 hydrogen atoms
+            # -> Since the hydrogen atoms are indistinguishable,
+            # there are two possible assignment to reference hydrogens
+            try:
+                assert np.max(struc.distance(
+                    test_molecule.coord[test_h_indices],
+                    ref_molecule.coord[ref_h_indices],
+                )) <= TOLERANCE
+            except AssertionError:
+                assert np.max(struc.distance(
+                    test_molecule.coord[test_h_indices],
+                    ref_molecule.coord[ref_h_indices][::-1],
+                )) <= TOLERANCE
+        else:
+            # Heavy atom has 3 hydrogen atoms
+            # -> there is rotational freedom
+            # -> invalid test case
+            raise ValueError("Invalid test case")
+
+
 def test_molecule_without_hydrogens():
     """
     Test whether the :func:`add_hydrogen()` can handle molecules, where

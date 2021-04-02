@@ -55,6 +55,10 @@ def test_hydrogen_positions(res_name):
     heavy_atoms = molecule[molecule.element != "H"]
     test_hydrogen_coord = library.calculate_hydrogen_coord(heavy_atoms)
     
+    test_count = 0
+    for coord in test_hydrogen_coord:
+        test_count += len(coord)
+    assert test_count == np.count_nonzero(molecule.element == "H")
     assert len(test_hydrogen_coord) == heavy_atoms.array_length()
     ref_index = 0
     for hydrogen_coord in test_hydrogen_coord:
@@ -82,7 +86,7 @@ def test_hydrogen_positions(res_name):
             except AssertionError:
                 assert np.max(struc.distance(
                     hydrogen_coord,
-                    ref_hydrogen_coord[ref_index : ref_index+2]
+                    ref_hydrogen_coord[ref_index : ref_index+2 : -1]
                 )) <= TOLERANCE
             ref_index += 2
         else:
