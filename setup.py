@@ -9,6 +9,9 @@ from os.path import join, abspath, dirname
 import os
 import pickle
 from setuptools import setup, find_packages
+import msgpack
+import numpy as np
+import biotite.structure as struc
 import biotite.structure.info as info
 from biotite.structure.info.misc import _res_names
 from src.hydride import FragmentLibrary, AtomNameLibrary
@@ -52,6 +55,39 @@ with open(join("src", "hydride", "__init__.py")) as init_file:
                 raise ValueError("No version is specified in '__init__.py'")
 
 
+
+def get_protonation_variants():
+    with open("prot_variants.msgpack", "rb") as file:
+        molecule_data = msgpack.unpack(file, use_list=False, raw=False)
+    molecules = []
+    for molecule_dict in molecule_data.values():
+        molecule = struc.AtomArray(len(molecule_dict["res_name"]))
+
+        molecule.add_annotation("charge", int)
+
+        molecule.res_name = molecule_dict["res_name"]
+        molecule.atom_name = molecule_dict["atom_name"]
+        molecule.element = molecule_dict["element"]
+        molecule.charge = molecule_dict["charge"]
+        molecule.hetero = molecule_dict["hetero"]
+
+        molecule.coord[:,0] = molecule_dict["coord_x"]
+        molecule.coord[:,1] = molecule_dict["coord_y"]
+        molecule.coord[:,2] = molecule_dict["coord_z"]
+
+        molecule.bonds = struc.BondList(
+            molecule.array_length(),
+            bonds = np.stack([
+                molecule_dict["bond_i"],
+                molecule_dict["bond_j"],
+                molecule_dict["bond_type"]
+            ]).T
+        )
+
+        molecules.append(molecule)
+    
+    return molecules
+
 # Compile fragment library
 mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
 std_fragment_library = FragmentLibrary()
@@ -67,6 +103,8 @@ with warnings.catch_warnings():
         except KeyError:
             continue
         std_fragment_library.add_molecule(mol)
+for mol in get_protonation_variants():
+    std_fragment_library.add_molecule(mol)
 print("Compiling fragment library... Done" + " " * 20)
 with open(join("src", "hydride", "fragments.pickle"), "wb") as fragments_file:
     pickle.dump(std_fragment_library._frag_dict, fragments_file)
@@ -91,6 +129,7 @@ with warnings.catch_warnings():
 print("Compiling atom name library... Done" + " " * 20)
 with open(join("src", "hydride", "names.pickle"), "wb") as names_file:
     pickle.dump(std_name_library._name_dict, names_file)
+
 
 
 setup(
