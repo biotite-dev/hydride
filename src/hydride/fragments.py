@@ -10,6 +10,7 @@ from os.path import join, dirname, abspath
 import warnings
 import pickle
 from biotite.structure.error import BadStructureError
+from biotite.structure import BondType
 import numpy as np
 
 
@@ -183,6 +184,36 @@ def _fragment(structure):
 
         hydrogen_mask = ~heavy_mask
         hydrogen_coord = coord[bond_indices[hydrogen_mask]]
+
+        # Special handling of nitrogen as central atom:
+        # There are cases where the free electron pair can form
+        # a partial double bond.
+        # Although the bond order is formally 1 in this case,
+        # it would enforce planar hydrogen positionioning
+        # Therefore, a partial double bond is handled as bond type 7
+        if elements[i] == "N":
+            for j, remote_index in enumerate(heavy_indices):
+                if heavy_types[j] != 1:
+                    # This handling only applies to single bonds
+                    continue
+                rem_bond_indices = all_bond_indices[remote_index]
+                rem_bond_indices = rem_bond_indices[rem_bond_indices != -1]
+                rem_bond_types = all_bond_types[remote_index]
+                rem_bond_types = rem_bond_types[rem_bond_types != -1]
+                for rem_rem_index, bond_type in zip(
+                    rem_bond_indices, rem_bond_types
+                ):
+                    # If the adjacent atom has a double bond to either
+                    # a nitrogen or oxygen atom or is part of an
+                    # aromatic system, the partial double bond
+                    # condition is fulfilled
+                    if bond_type == BondType.AROMATIC_SINGLE or \
+                       bond_type == BondType.AROMATIC_DOUBLE or \
+                       (
+                            bond_type == BondType.DOUBLE 
+                            and elements[rem_rem_index] in ("N", "O")
+                       ):
+                            heavy_types[j] = 7
 
         n_heavy_bonds = np.count_nonzero(heavy_mask)
         if n_heavy_bonds == 0:
