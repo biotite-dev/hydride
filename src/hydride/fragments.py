@@ -109,9 +109,6 @@ class FragmentLibrary:
             hit = self._frag_dict.get(
                 (central_element, central_charge, stereo, tuple(bond_types))
             )
-            print(central_element, central_charge, stereo, bond_types)
-            print(hit)
-            print()
             if hit is None:
                 warnings.warn(
                     f"Missing fragment for atom '{structure.atom_name[i]}' "
