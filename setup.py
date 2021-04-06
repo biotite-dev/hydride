@@ -89,8 +89,12 @@ def get_protonation_variants():
     return molecules
 
 # Compile fragment library
-mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
 std_fragment_library = FragmentLibrary()
+# Add protonation variants at first because the bond lengths for neutral
+# fragments might variate slightly
+for mol in get_protonation_variants():
+    std_fragment_library.add_molecule(mol)
+mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     for i, mol_name in enumerate(mol_names):
@@ -103,8 +107,6 @@ with warnings.catch_warnings():
         except KeyError:
             continue
         std_fragment_library.add_molecule(mol)
-for mol in get_protonation_variants():
-    std_fragment_library.add_molecule(mol)
 print("Compiling fragment library... Done" + " " * 20)
 with open(join("src", "hydride", "fragments.pickle"), "wb") as fragments_file:
     pickle.dump(std_fragment_library._frag_dict, fragments_file)
