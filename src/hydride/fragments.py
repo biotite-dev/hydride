@@ -207,13 +207,11 @@ def _fragment(structure):
                     # a nitrogen or oxygen atom or is part of an
                     # aromatic system, the partial double bond
                     # condition is fulfilled
-                    if bond_type == BondType.AROMATIC_SINGLE or \
-                       bond_type == BondType.AROMATIC_DOUBLE or \
-                       (
-                            bond_type == BondType.DOUBLE 
-                            and elements[rem_rem_index] in ("N", "O")
-                       ):
-                            heavy_types[j] = 7
+                    if bond_type == BondType.AROMATIC_DOUBLE or (
+                        bond_type == BondType.DOUBLE 
+                        and elements[rem_rem_index] in ("N", "O")
+                    ):
+                        heavy_types[j] = 7
 
         n_heavy_bonds = np.count_nonzero(heavy_mask)
         if n_heavy_bonds == 0:
