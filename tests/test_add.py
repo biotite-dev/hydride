@@ -92,16 +92,14 @@ def test_hydrogen_positions(res_name):
             # Heavy atom has 2 hydrogen atoms
             # -> Since the hydrogen atoms are indistinguishable,
             # there are two possible assignment to reference hydrogens
-            try:
-                assert np.max(struc.distance(
+            best_distance = min([
+                np.max(struc.distance(
                     test_molecule.coord[test_h_indices],
-                    ref_molecule.coord[ref_h_indices],
-                )) <= TOLERANCE
-            except AssertionError:
-                assert np.max(struc.distance(
-                    test_molecule.coord[test_h_indices],
-                    ref_molecule.coord[ref_h_indices][::-1],
-                )) <= TOLERANCE
+                    ref_molecule.coord[ref_h_indices][::order],
+                ))
+                for order in (1, -1)
+            ])
+            assert best_distance <= TOLERANCE
         else:
             # Heavy atom has 3 hydrogen atoms
             # -> there is rotational freedom
