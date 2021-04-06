@@ -108,6 +108,9 @@ class FragmentLibrary:
             hit = self._frag_dict.get(
                 (central_element, central_charge, stereo, tuple(bond_types))
             )
+            print(central_element, central_charge, stereo, bond_types)
+            print(hit)
+            print()
             if hit is None:
                 warnings.warn(
                     f"Missing fragment for atom '{structure.atom_name[i]}' "
@@ -198,7 +201,7 @@ def _fragment(structure):
             rem_heavy_indices = rem_bond_indices[rem_heavy_mask]
             # Use the coord of any heavy atom bonded to the remote
             # atom
-            rem_rem_index = rem_bond_indices[0]
+            rem_rem_index = rem_heavy_indices[0]
             # Include the directly bonded atom two times, to give it a
             # greater weight in superimposition
             heavy_coord = coord[[remote_index, remote_index, rem_rem_index]]
