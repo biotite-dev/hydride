@@ -169,3 +169,80 @@ def test_stereocenter(lib_enantiomer, subject_enantiomer):
     test_stereo_h_coord = test_model.coord[test_model.atom_name == "HA"][0]
 
     assert struc.distance(test_stereo_h_coord, ref_stereo_h_coord) <= TOLERANCE
+
+
+@pytest.mark.parametrize("res_name, nitrogen_index", [
+    ("ARG", 7), # Arginine NE
+    ("ARG",  9), # Arginine NH1
+    ("ARG",  10), # Arginine NH2
+    ("PRO",  0), # Proline N
+    ("ASN",  7), # Asparagine N
+])
+def test_partial_double_bonds(res_name, nitrogen_index):
+    """
+    It is difficult to assign hydrogen atoms to nitrogen properly,
+    as the the geometry can be trigonal planar instead of tetrahedral,
+    due to partial double bonds.
+
+    This test checks whether the correct geomtry is found for selected
+    nitrogen atoms in chosen examples.
+    The chosen examples have no intersect with
+    :func:`test_hydrogen_positions()`, as those molecules were already
+    tested.
+
+    As in :func:`test_hydrogen_positions()`, it is important that the
+    respective nitrogen atom has no rotational freedom.
+    """
+    TOLERANCE = 0.1
+
+    library = hydride.FragmentLibrary.standard_library()
+
+    molecule = info.residue(res_name)
+    #print(molecule)
+    #print()
+    #print(molecule[nitrogen_index])
+    #raise
+    if molecule.element[nitrogen_index] != "N":
+        raise ValueError("Invalid test case")
+    
+    np.random.seed(0)
+    molecule = struc.rotate(molecule, np.random.rand(3))
+    molecule = struc.translate(molecule, np.random.rand(3))
+    
+    bond_indices, _ = molecule.bonds.get_bonds(nitrogen_index)
+    bond_h_indices = bond_indices[molecule.element[bond_indices] == "H"]
+    ref_hydrogen_coord = molecule.coord[bond_h_indices]
+
+    molecule = molecule[molecule.element != "H"]
+    hydrogen_coord = library.calculate_hydrogen_coord(molecule)
+    test_hydrogen_coord = hydrogen_coord[nitrogen_index]
+
+    # The coord for all hydrogens bonded to the same heavy atom
+    if len(test_hydrogen_coord) == 0:
+        # No bonded hydrogen atoms -> nothing to compare
+        raise ValueError("Invalid test case")
+    elif len(test_hydrogen_coord) == 1:
+        # Only a single hydrogen atom
+        # -> unambiguous assignment to reference hydrogen coord
+        assert np.max(struc.distance(
+            test_hydrogen_coord,
+            ref_hydrogen_coord
+        )) <= TOLERANCE
+    elif len(test_hydrogen_coord) == 2:
+        # Heavy atom has 2 hydrogen atoms
+        # -> Since the hydrogen atoms are indistinguishable,
+        # there are two possible assignment to reference
+        # hydrogen atoms
+        best_distance = min([
+            np.max(struc.distance(
+                test_hydrogen_coord,
+                ref_hydrogen_coord[::order]
+            ))
+            for order in (1, -1)
+        ])
+        assert best_distance <= TOLERANCE
+    else:
+        # Heavy atom has 3 hydrogen atoms
+        # -> there is rotational freedom
+        # -> invalid test case
+        raise ValueError("Invalid test case")
