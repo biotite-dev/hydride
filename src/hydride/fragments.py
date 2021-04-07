@@ -71,13 +71,16 @@ class FragmentLibrary:
                 )
 
 
-    def calculate_hydrogen_coord(self, structure):
+    def calculate_hydrogen_coord(self, structure, mask=None):
         """
         Returns
         -------
         hydrogen_coord : ndarray, shape=(n,4,3), dtype=np.float32
             Padded with *NaN* values.
         """
+        if mask is None:
+            mask = np.ones(structure.array_length(), dtype=bool)
+
         # The subject and reference heavy atom coordinates
         # for each fragment
         sub_frag_center_coord = np.zeros(
@@ -96,8 +99,11 @@ class FragmentLibrary:
         )
 
         # Fil the coordinate arrays
-        fragments = _fragment(structure)
+        fragments = _fragment(structure, mask)
         for i, fragment in enumerate(fragments):
+            if fragment is None:
+                # This atom is nt in mask
+                continue
             (
                 central_element, central_charge, stereo, bond_types,
                 center_coord, heavy_coord, _
@@ -147,7 +153,10 @@ class FragmentLibrary:
         return sub_frag_hydrogen_coord
 
 
-def _fragment(structure):
+def _fragment(structure, mask=None):
+    if mask is None:
+        mask = np.ones(structure.array_length(), dtype=bool)
+
     if structure.bonds is None:
         raise BadStructureError(
             "The input structure must have an associated BondList"
@@ -161,6 +170,9 @@ def _fragment(structure):
     coord = structure.coord
 
     for i in range(structure.array_length()):
+        if not mask[i]:
+            continue
+        
         if elements[i] == "H":
             # Only create fragments for heavy atoms
             continue

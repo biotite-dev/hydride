@@ -122,6 +122,32 @@ def test_molecule_without_hydrogens():
     assert test_molecule == ref_molecule
 
 
+@pytest.mark.parametrize("fill_value", [False, True])
+def test_atom_mask(fill_value):
+    """
+    Check whether the inout atom mask works properly by testing extreme
+    cases.
+    """
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    heavy_atoms = atoms[atoms.element != "H"]
+    mask = np.full(heavy_atoms.array_length(), fill_value, dtype=bool)
+
+    if fill_value is True:
+        # All hydrogen atom are added
+        ref_atoms,  ref_orig_mask  = hydride.add_hydrogen(heavy_atoms)
+        test_atoms, test_orig_mask = hydride.add_hydrogen(heavy_atoms, mask)
+        assert test_atoms == ref_atoms
+        assert np.array_equal(test_orig_mask, ref_orig_mask)
+    else:
+        # No hydrogen atoms are added
+        test_atoms, test_orig_mask = hydride.add_hydrogen(heavy_atoms, mask)
+        assert test_atoms == heavy_atoms
+        assert (test_orig_mask == True).all()
+
+
 @pytest.mark.parametrize(
     "path",
     glob.glob(join(data_dir(), "*.mmtf"))

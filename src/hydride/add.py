@@ -12,7 +12,10 @@ from .fragments import FragmentLibrary
 from .names import AtomNameLibrary
 
 
-def add_hydrogen(atoms, fragment_library=None, name_library=None):
+def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None):
+   if mask is None:
+      mask = np.ones(atoms.array_length(), dtype=bool)
+
    if fragment_library is None:
       fragment_library = FragmentLibrary.standard_library()
    if name_library is None:
@@ -23,7 +26,7 @@ def add_hydrogen(atoms, fragment_library=None, name_library=None):
          "Input structure already contains hydrogen atoms"
       )
    
-   hydrogen_coord = fragment_library.calculate_hydrogen_coord(atoms)
+   hydrogen_coord = fragment_library.calculate_hydrogen_coord(atoms, mask)
 
    # Count number of hydrogen atoms to be added
    count = 0
