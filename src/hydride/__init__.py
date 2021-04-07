@@ -7,7 +7,12 @@ __name__ = "hydride"
 __author__ = "Jacob Anter, Patrick Kunzmann"
 
 from .add import *
-from .relax import *
 #from .cli import *
 from .fragments import *
 from .names import *
+
+# Module can only be imported if the C-extension has already been built
+try:
+    from .relax import *
+except ImportError:
+    pass

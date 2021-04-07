@@ -4,11 +4,12 @@
 
 import warnings
 import re
-import glob
-from os.path import join, abspath, dirname
+from os.path import join, abspath, dirname, normpath
+import fnmatch
 import os
 import pickle
-from setuptools import setup, find_packages
+from setuptools import setup, find_packages, Extension
+from Cython.Build import cythonize
 import msgpack
 import numpy as np
 import biotite.structure as struc
@@ -53,6 +54,36 @@ with open(join("src", "hydride", "__init__.py")) as init_file:
                 version = version_match.group(0)[1 : -1]
             else:
                 raise ValueError("No version is specified in '__init__.py'")
+
+
+
+# Compile Cython into C
+try:
+    cythonize(
+        "src/**/*.pyx",
+        include_path=[np.get_include()],
+        language_level=3
+    )
+except ValueError:
+    # This is a source distribution and the directory already contains
+    # only C files
+    pass
+
+
+def get_extensions():
+    ext_sources = []
+    for dirpath, dirnames, filenames in os.walk(normpath("src/hydride")):
+        for filename in fnmatch.filter(filenames, '*.c'):
+            ext_sources.append(os.path.join(dirpath, filename))
+    ext_names = [source
+                 .replace("src"+normpath("/"), "")
+                 .replace(".c", "")
+                 .replace(normpath("/"), ".")
+                 for source in ext_sources]
+    ext_modules = [Extension(ext_names[i], [ext_sources[i]],
+                             include_dirs=[np.get_include()])
+                   for i in range(len(ext_sources))]
+    return ext_modules
 
 
 
@@ -163,6 +194,8 @@ setup(
     zip_safe = False,
     packages = find_packages("src"),
     package_dir = {"" : "src"},
+
+    ext_modules = get_extensions(),
 
     # Include fragment and atom name libraries
     package_data = {"hydride" : ["*.pickle"]},
