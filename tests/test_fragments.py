@@ -172,11 +172,12 @@ def test_stereocenter(lib_enantiomer, subject_enantiomer):
 
 
 @pytest.mark.parametrize("res_name, nitrogen_index", [
-    ("ARG", 7), # Arginine NE
+    ("ARG",  7), # Arginine NE
     ("ARG",  9), # Arginine NH1
-    ("ARG",  10), # Arginine NH2
+    ("ARG", 10), # Arginine NH2
     ("PRO",  0), # Proline N
     ("ASN",  7), # Asparagine N
+    ("T",   15), # Thymidine N3
 ])
 def test_partial_double_bonds(res_name, nitrogen_index):
     """
@@ -198,10 +199,6 @@ def test_partial_double_bonds(res_name, nitrogen_index):
     library = hydride.FragmentLibrary.standard_library()
 
     molecule = info.residue(res_name)
-    #print(molecule)
-    #print()
-    #print(molecule[nitrogen_index])
-    #raise
     if molecule.element[nitrogen_index] != "N":
         raise ValueError("Invalid test case")
     
