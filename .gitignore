@@ -22,6 +22,11 @@ htmlcov
 *.py{}
 *.py-e
 
+# Ignore files created via Cython
+*.c
+*.so
+*.pyd
+
 # Ignore potential directory created during install
 biotite.egg-info
 

@@ -7,7 +7,7 @@ __name__ = "hydride"
 __author__ = "Jacob Anter, Patrick Kunzmann"
 
 from .add import *
-#from .relax import *
+from .relax import *
 #from .cli import *
 from .fragments import *
 from .names import *
