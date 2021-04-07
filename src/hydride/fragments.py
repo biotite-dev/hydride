@@ -71,7 +71,7 @@ class FragmentLibrary:
                 )
 
 
-    def calculate_hydrogen_coord(self, structure, mask=None):
+    def calculate_hydrogen_coord(self, atoms, mask=None):
         """
         Returns
         -------
@@ -79,27 +79,27 @@ class FragmentLibrary:
             Padded with *NaN* values.
         """
         if mask is None:
-            mask = np.ones(structure.array_length(), dtype=bool)
+            mask = np.ones(atoms.array_length(), dtype=bool)
 
         # The subject and reference heavy atom coordinates
         # for each fragment
         sub_frag_center_coord = np.zeros(
-            (structure.array_length(), 3), dtype=np.float32
+            (atoms.array_length(), 3), dtype=np.float32
         )
         sub_frag_heavy_coord = np.zeros(
-            (structure.array_length(), 3, 3), dtype=np.float32
+            (atoms.array_length(), 3, 3), dtype=np.float32
         )
         ref_frag_heavy_coord = np.zeros(
-            (structure.array_length(), 3, 3), dtype=np.float32
+            (atoms.array_length(), 3, 3), dtype=np.float32
         )
         # The amount of hydrogens varies for each fragment
         # -> padding with NaN
         ref_frag_hydrogen_coord = np.full(
-            (structure.array_length(), 4, 3), np.nan, dtype=np.float32
+            (atoms.array_length(), 4, 3), np.nan, dtype=np.float32
         )
 
         # Fil the coordinate arrays
-        fragments = _fragment(structure, mask)
+        fragments = _fragment(atoms, mask)
         for i, fragment in enumerate(fragments):
             if fragment is None:
                 # This atom is nt in mask
@@ -117,7 +117,7 @@ class FragmentLibrary:
             )
             if hit is None:
                 warnings.warn(
-                    f"Missing fragment for atom '{structure.atom_name[i]}' "
+                    f"Missing fragment for atom '{atoms.atom_name[i]}' "
                     f"at position {i}"
                 )
             else:
@@ -153,23 +153,23 @@ class FragmentLibrary:
         return sub_frag_hydrogen_coord
 
 
-def _fragment(structure, mask=None):
+def _fragment(atoms, mask=None):
     if mask is None:
-        mask = np.ones(structure.array_length(), dtype=bool)
+        mask = np.ones(atoms.array_length(), dtype=bool)
 
-    if structure.bonds is None:
+    if atoms.bonds is None:
         raise BadStructureError(
             "The input structure must have an associated BondList"
         )
 
-    fragments = [None] * structure.array_length()
+    fragments = [None] * atoms.array_length()
     
-    all_bond_indices, all_bond_types = structure.bonds.get_all_bonds()
-    elements = structure.element
-    charges = structure.charge
-    coord = structure.coord
+    all_bond_indices, all_bond_types = atoms.bonds.get_all_bonds()
+    elements = atoms.element
+    charges = atoms.charge
+    coord = atoms.coord
 
-    for i in range(structure.array_length()):
+    for i in range(atoms.array_length()):
         if not mask[i]:
             continue
         
@@ -264,8 +264,8 @@ def _fragment(structure, mask=None):
             stereo = 0
         else:
             warnings.warn(
-                f"Atom '{structure.atom_name[i]}' in "
-                f"'{structure.res_name[i]}' has more than 4 bonds to "
+                f"Atom '{atoms.atom_name[i]}' in "
+                f"'{atoms.res_name[i]}' has more than 4 bonds to "
                 f"heavy atoms ({n_heavy_bonds}) and is ignored"
             )
             heavy_coord = np.repeat(coord[np.newaxis, i, :], 3, axis=0)
