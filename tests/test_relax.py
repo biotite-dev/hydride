@@ -36,9 +36,15 @@ def test_hydrogen_positions():
             (  "N",  "CA",  True, ("H", "H2")),
             ("OXT",   "C",  True, ("HXT",)),
         ]),
+        ("HOH", [
+        ]),
     ]
 )
 def test_bond_identification(res_name, ref_bonds):
+    """
+    Test whether rotatable bonds for the relaxation are correctly
+    identified based on known molecules.
+    """
     molecule = info.residue(res_name)
     rotatable_bonds = _find_rotatable_bonds(molecule)
 
