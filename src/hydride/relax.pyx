@@ -131,8 +131,8 @@ def relax_hydrogen(atoms, iteration_number=1):
     matrix_indices = np.full(
         atoms.array_length(), -1, dtype=np.int32
     )
-    cdef uint8[:] is_free_v = np.zeros(
-        len(rotatable_bonds), dtype=np.uint8
+    rotation_freedom = np.zeros(
+        len(rotatable_bonds), dtype=bool
     )
     hydrogen_mask = np.zeros(atoms.array_length(), dtype=bool)
     for i, (
@@ -141,7 +141,7 @@ def relax_hydrogen(atoms, iteration_number=1):
         rotation_axes[i, 0] = coord[central_atom_index]
         rotation_axes[i, 1] = coord[bonded_atom_index]
         matrix_indices[hydrogen_indices] = i
-        is_free_v[i] = is_free
+        rotation_freedom[i] = is_free
         hydrogen_mask[hydrogen_indices] = True
     
     cdef float32[:,:,:] rot_mat_v = np.zeros(
@@ -155,6 +155,7 @@ def relax_hydrogen(atoms, iteration_number=1):
 
 
     energy_function = EnergyFunction(atoms, hydrogen_mask)
+    prev_energy = energy_function(coord)
 
     np.random.seed(0)
     #seen_cord = np.zeros(coord.shape + (iteration_number,), dtype=np.float32)
@@ -171,9 +172,17 @@ def relax_hydrogen(atoms, iteration_number=1):
     cdef float32 sin_a, cos_a, icos_a
     cdef float32 x, y, z
     for _ in range(iteration_number):
-        # Random permutation
+        # Generate new hydrogen conformation
         # Get random angles
-        angles = np.full(len(rotatable_bonds), np.pi, dtype=np.float32)
+        n_free_rotations = np.count_nonzero(rotation_freedom)
+        angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
+        angles[rotation_freedom] = np.random.rand(n_free_rotations) \
+                                   * 1.0 * 2*np.pi
+        angles[~rotation_freedom] = np.random.choice(
+            (0, np.pi),
+            size = len(rotatable_bonds) - n_free_rotations,
+            p = (0.9, 0.1)
+        ) 
         angles_v = angles
         # Calculate rotation matrices for these angles
         for mat_i in range(angles_v.shape[0]):
@@ -197,7 +206,6 @@ def relax_hydrogen(atoms, iteration_number=1):
             rot_mat_v[mat_i, 2, 0] = icos_a*x*z - y*sin_a
             rot_mat_v[mat_i, 2, 1] = icos_a*y*z + x*sin_a
             rot_mat_v[mat_i, 2, 2] = cos_a + icos_a*z**2
-        
         # Apply matrices
         new_coord = prev_coord.copy()
         prev_coord_v = prev_coord
@@ -225,9 +233,11 @@ def relax_hydrogen(atoms, iteration_number=1):
 
         # Calculate energy for new conformation
         energy = energy_function(new_coord)
-        print(energy)
+        if energy < prev_energy:
+            prev_coord = new_coord
+            prev_energy = energy
 
-    return new_coord
+    return prev_coord
 
 
 def _find_rotatable_bonds(atoms):
