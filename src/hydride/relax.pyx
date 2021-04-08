@@ -22,7 +22,7 @@ ctypedef np.float32_t float32
 
 
 cdef int SINGLE = struc.BondType.SINGLE
-cdef int DOUBLE = struc.BondType.SINGLE
+cdef int DOUBLE = struc.BondType.DOUBLE
 cdef int AROMATIC_DOUBLE = struc.BondType.AROMATIC_DOUBLE
 
 
@@ -293,6 +293,10 @@ def _find_rotatable_bonds(atoms):
                 # -> no rotational freedom
                 is_rotatable = False
                 break
+        
+        # There must be at least one bonded hydrogen atom
+        if h_i == 0:
+            is_rotatable = False
 
         # The rotation freedom might be restricted to 180 degrees
         # in a (partially) double bonded heavy atom
@@ -303,8 +307,11 @@ def _find_rotatable_bonds(atoms):
                 # Nitrogen is the only relevant atom for this case
                 if is_nitrogen[i]:
                     for j in range(all_bond_indices.shape[1]):
-                        rem_index = all_bond_indices[i, j]
-                        rem_btype = all_bond_types[i, j]
+                        rem_index = all_bond_indices[bonded_heavy_index, j]
+                        if rem_index == -1:
+                            # padding value
+                            break
+                        rem_btype = all_bond_types[bonded_heavy_index, j]
                         # If the adjacent atom has a double bond to
                         # either a nitrogen or oxygen atom or is part of
                         # an aromatic system, the partial double bond
@@ -321,6 +328,8 @@ def _find_rotatable_bonds(atoms):
                 # Triple bond etc. -> no rotational freedom
                 is_rotatable = False
                 is_free = False
+        else:
+            is_free = False
         
         # 180 degrees rotation makes only sense if there is only one
         # hydrogen atom, as two hydrogen atoms would simply replace each

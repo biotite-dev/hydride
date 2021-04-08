@@ -126,7 +126,7 @@ def test_molecule_without_hydrogens():
 @pytest.mark.parametrize("fill_value", [False, True])
 def test_atom_mask(fill_value):
     """
-    Check whether the inout atom mask works properly by testing extreme
+    Check whether the input atom mask works properly by testing extreme
     cases.
     """
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
