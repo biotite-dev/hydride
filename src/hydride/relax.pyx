@@ -6,6 +6,7 @@ __name__ = "hydride"
 __author__ = "Patrick Kunzmann, Jacob Marcel Anter"
 __all__ = ["relax_hydrogen"]
 
+from libc.math cimport sin, cos
 cimport cython
 cimport numpy as np
 
@@ -115,12 +116,14 @@ class EnergyFunction:
 
 
 def relax_hydrogen(atoms, iteration_number=1):
-    coord = atoms.coord.copy()
+    cdef int i, j, mat_i
+
+    coord = atoms.coord
 
     rotatable_bonds = _find_rotatable_bonds(atoms)
     if len(rotatable_bonds) == 0:
         # No bond to optimize
-        return coord
+        return coord.copy()
 
     rotation_axes = np.zeros(
         (len(rotatable_bonds), 2, 3), dtype=np.float32
@@ -128,7 +131,7 @@ def relax_hydrogen(atoms, iteration_number=1):
     matrix_indices = np.full(
         atoms.array_length(), -1, dtype=np.int32
     )
-    cdef uint8[:] full_freedom = np.zeros(
+    cdef uint8[:] is_free_v = np.zeros(
         len(rotatable_bonds), dtype=np.uint8
     )
     hydrogen_mask = np.zeros(atoms.array_length(), dtype=bool)
@@ -138,23 +141,93 @@ def relax_hydrogen(atoms, iteration_number=1):
         rotation_axes[i, 0] = coord[central_atom_index]
         rotation_axes[i, 1] = coord[bonded_atom_index]
         matrix_indices[hydrogen_indices] = i
-        full_freedom[i] = is_free
+        is_free_v[i] = is_free
         hydrogen_mask[hydrogen_indices] = True
     
-    cdef float32[:,:,:] rotation_matrices = np.zeros(
+    cdef float32[:,:,:] rot_mat_v = np.zeros(
         (len(rotatable_bonds), 3, 3), dtype=np.float32
     )
-    cdef int32[:] mat_indices = matrix_indices
-    cdef float32[:,:] axes = rotation_axes[:, 1] - rotation_axes[:, 0]
-    cdef float32[:,:] support = rotation_axes[:, 0]
+    cdef int32[:] matrix_indices_v = matrix_indices
+    axes = rotation_axes[:, 1] - rotation_axes[:, 0]
+    axes /= np.linalg.norm(axes, axis=-1)[:, np.newaxis]
+    cdef float32[:,:] axes_v = axes
+    cdef float32[:,:] support_v = rotation_axes[:, 0]
+
 
     energy_function = EnergyFunction(atoms, hydrogen_mask)
-    
+
+    np.random.seed(0)
+    #seen_cord = np.zeros(coord.shape + (iteration_number,), dtype=np.float32)
+    #energies = np.zeros(iteration_number, dtype=np.float32)
+    prev_coord = atoms.coord.copy()
+    new_coord = np.zeros(prev_coord.shape, dtype=np.float32)
+    # Helper variable for the support-subtracted vector
+    center_coord = np.zeros(3, dtype=np.float32)
+    cdef float32[:,:] prev_coord_v
+    cdef float32[:,:] new_coord_v
+    cdef float32[:] center_coord_v = center_coord
+    cdef float32[:] angles_v
+    cdef float32 angle
+    cdef float32 sin_a, cos_a, icos_a
+    cdef float32 x, y, z
     for _ in range(iteration_number):
-        energy = energy_function(coord)
+        # Random permutation
+        # Get random angles
+        angles = np.full(len(rotatable_bonds), np.pi, dtype=np.float32)
+        angles_v = angles
+        # Calculate rotation matrices for these angles
+        for mat_i in range(angles_v.shape[0]):
+            x = axes_v[mat_i, 0]
+            y = axes_v[mat_i, 1]
+            z = axes_v[mat_i, 2]
+            angle = angles_v[mat_i]
+            sin_a = sin(angle)
+            cos_a = cos(angle)
+            icos_a = 1 - cos_a
+            # The roation matrix:
+            #  cos_a + icos_a*x**2  icos_a*x*y - z*sin_a  icos_a*x*z + y*sin_a
+            # icos_a*x*y + z*sin_a   cos_a + icos_a*y**2  icos_a*y*z - x*sin_a
+            # icos_a*x*z - y*sin_a  icos_a*y*z + x*sin_a   cos_a + icos_a*z**2
+            rot_mat_v[mat_i, 0, 0] = cos_a + icos_a*x**2
+            rot_mat_v[mat_i, 0, 1] = icos_a*x*y - z*sin_a
+            rot_mat_v[mat_i, 0, 2] = icos_a*x*z + y*sin_a
+            rot_mat_v[mat_i, 1, 0] = icos_a*x*y + z*sin_a
+            rot_mat_v[mat_i, 1, 1] = cos_a + icos_a*y**2
+            rot_mat_v[mat_i, 1, 2] = icos_a*y*z - x*sin_a
+            rot_mat_v[mat_i, 2, 0] = icos_a*x*z - y*sin_a
+            rot_mat_v[mat_i, 2, 1] = icos_a*y*z + x*sin_a
+            rot_mat_v[mat_i, 2, 2] = cos_a + icos_a*z**2
+        
+        # Apply matrices
+        new_coord = prev_coord.copy()
+        prev_coord_v = prev_coord
+        new_coord_v = new_coord
+        for i in range(matrix_indices_v.shape[0]):
+            mat_i = matrix_indices_v[i]
+            if mat_i == -1:
+                # Atom should not be rotated
+                continue
+            # Subtract support vector
+            center_coord_v[0] = prev_coord_v[i, 0] - support_v[mat_i, 0]
+            center_coord_v[1] = prev_coord_v[i, 1] - support_v[mat_i, 1]
+            center_coord_v[2] = prev_coord_v[i, 2] - support_v[mat_i, 2]
+            # Rotate using the matrix
+            # Iterate over each vector row
+            # to perform the matrix-vector multiplication
+            for j in range(3):
+                new_coord_v[i,j] = rot_mat_v[mat_i,j,0] * center_coord_v[0] + \
+                                   rot_mat_v[mat_i,j,1] * center_coord_v[1] + \
+                                   rot_mat_v[mat_i,j,2] * center_coord_v[2]
+            # Readd support vector
+            new_coord_v[i, 0] += support_v[mat_i, 0]
+            new_coord_v[i, 1] += support_v[mat_i, 1]
+            new_coord_v[i, 2] += support_v[mat_i, 2]
+
+        # Calculate energy for new conformation
+        energy = energy_function(new_coord)
         print(energy)
 
-    return coord
+    return new_coord
 
 
 def _find_rotatable_bonds(atoms):
