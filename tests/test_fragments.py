@@ -26,6 +26,7 @@ import hydride
     "4FT", # Phthalazine
     "URA", # Uracil
     "CHX", # Cyclohexane
+    "CEJ", # 1,3-Cyclopentanedione
     "CN",  # Hydrogen cyanide
     "11X"  # N-pyridin-3-ylmethylaniline
 ])
