@@ -16,10 +16,39 @@ from .util import data_dir
 
 def test_hydrogen_positions():
     """
-    Check whether the relaxation algorithm is able to restore the
-    original hydrogen positions
+    Check whether the relaxation algorithm is able to restore a high 
+    percentage of the number of original hydrogen positions.
     """
     pass
+
+
+def test_hydrogen_bonds():
+    """
+    Check whether the relaxation algorithm is able to restore most of
+    the original hydrogen bonds.
+    The number of bonds found without relaxation is handled as baseline.
+    """
+    PERCENTAGE = 0.8
+
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    ref_num = len(struc.hbond(atoms))
+    
+    atoms = atoms[atoms.element != "H"]
+    atoms, _ = hydride.add_hydrogen(atoms)
+    base_num = len(struc.hbond(atoms))
+
+    atoms.coord = hydride.relax_hydrogen(atoms, iteration_number=1000)
+    test_num = len(struc.hbond(atoms))
+
+    if base_num == ref_num:
+        ValueError(
+            "Invalid test case, "
+            "no further hydrogen bonds can be found via relaxation"
+        )
+    assert (test_num - base_num) / (ref_num - base_num) >= PERCENTAGE
 
 
 @pytest.mark.parametrize(
