@@ -14,6 +14,19 @@ from biotite.structure.error import BadStructureError
 
 
 class AtomNameLibrary:
+    """
+    A library for generating hydrogen atom names.
+
+    For each molecule added to the :class:`AtomNameLibrary`,
+    the hydrogen atom names are saved for each heavy atom in this
+    molecule.
+
+    If hydrogen atom names should be generated for a heavy atom,
+    the library first looks for a corresponding entry in the library.
+    If such entry is not found, since the molecule was never added to
+    the library, the hydrogen atom names are guessed based on common
+    hydrogen naming schemes.
+    """
 
     _std_library = None
 
@@ -23,6 +36,16 @@ class AtomNameLibrary:
 
     @staticmethod
     def standard_library():
+        """
+        Get the standard :class:`AtomNameLibrary`.
+        The library contains atom names for the most prominent molecules
+        including amino acids and nucleotides.
+
+        Returns
+        -------
+        library : AtomNameLibrary
+            The standard library.
+        """
         if AtomNameLibrary._std_library is None:
             AtomNameLibrary._std_library = AtomNameLibrary()
             file_name = join(dirname(abspath(__file__)), "names.pickle")
@@ -33,6 +56,15 @@ class AtomNameLibrary:
     
 
     def add_molecule(self, molecule):
+        """
+        Add the hydrogen atom names for each heavy atom in the molecule
+        to the library.
+
+        Parameters
+        ----------
+        molecule : AtomArray
+            The molecule to use the hydrogen atom names from.
+        """
         if molecule.bonds is None:
             raise BadStructureError(
                 "The input molecule must have an associated BondList"
@@ -52,6 +84,13 @@ class AtomNameLibrary:
 
         
     def generate_hydrogen_names(self, heavy_res_name, heavy_atom_name):
+        """
+        Generate hydrogen atom names for the given residue and heavy
+        atom name.
+
+        If the residue is not found in the library, the hydrogen atom
+        name is guessed based on common hydrogen naming schemes.
+        """
         hydrogen_names = self._name_dict.get((heavy_res_name, heavy_atom_name))
         if hydrogen_names is not None:
             # Hydrogen names from library
