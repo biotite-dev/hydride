@@ -27,6 +27,37 @@ cdef int AROMATIC_DOUBLE = struc.BondType.AROMATIC_DOUBLE
 
 
 class EnergyFunction:
+    r"""
+    __init__(atom_array, atoms, relevant_mask, force_cutoff=10.0, partial_charges=None)
+
+    This class represents the energy function used for relaxation.
+
+    After construction, the energy and energy gradient dependent on the
+    dihedral angles is obtained by calling the object, with the
+    current atom coordinates.
+
+    Parameters
+    ----------
+    atoms : AtomArray, shape=(n,)
+        The structure to calculate the energy values for.
+    relevant_mask : ndarray, shape=(n,), dtype=bool
+        This boolean mask specifies the atoms, whose positions are
+        variable and hence whose interactions with other atoms are
+        relevant.
+        Usually this includes all hydrogen atoms with rotational
+        freedom.
+    force_cutoff : float, optional
+        The force cutoff distance in Å.
+        If the initial distance between two atoms exceeds this value,
+        their interaction
+        (:math:`V_\text{El}` and :math:`V_\text{LJ}`) is not
+        calculated.
+    partial_charges : ndarray, shape=(n,), dtype=float, optional
+        The partial charges for each atom used to calculate
+        :math:`V_\text{El}`.
+        By default the charges are calculated using
+        :func:`biotite.structure.partial_charges()`.
+    """
 
     def __init__(self, atoms, relevant_mask,
                  force_cutoff=10.0, partial_charges=None):
@@ -116,6 +147,53 @@ class EnergyFunction:
 
 
 def relax_hydrogen(atoms, iteration_number=1):
+    r"""
+    relax_hydrogen(atoms, iteration_number=1)
+
+    Optimize the hydrogen atom positions using gradient descent
+    based on an electrostatic and Lennart-Jones potential.
+
+    Parameters
+    ----------
+    atoms : AtomArray, shape=(n,)
+        The structure, whose hydrogen atoms should be relaxed.
+    iteration_number : int, optional
+        The number of gradient descent iterations.
+        The runtime scales approximately linearly with the number of
+        iterations.
+    
+    Returns
+    -------
+    relaxed_coord : ndarray, shape=(n,), dtype=np.float32
+        The optimized coordinates.
+        The coordinates for all heavy atoms remain unchanged.
+
+    Notes
+    -----
+    The potential consists of the follwong terms:
+    
+    .. math::
+
+        V = V_\text{El} + V_\text{LJ}
+        
+        V_\text{El} = \epsilon_\text{El}
+        \sum_i^\text{H}  \sum_j^\text{All}
+        \frac{q_i q_j}{D_{ij}}
+
+        E_\text{LJ} = \epsilon_\text{LJ}
+        \sum_i^\text{H}  \sum_j^\text{All}
+        \left(
+            \frac{r_{ij}^{12}}{D_{ij}^{12}} - \frac{r_{ij}^6}{D_{ij}^6}
+        \right)
+    
+    where :math:`D_{ij}` is the distance between the atoms :math:`i`
+    and :math:`j` and :math:`r_{ij}` is calculated from the
+    *Van-der-Waals* radii :math:`R` as
+
+    .. math::
+
+        r_{ij} = \frac{R_i + R_j}{2}.
+    """
     cdef int i, j, mat_i
 
     coord = atoms.coord
@@ -241,6 +319,29 @@ def relax_hydrogen(atoms, iteration_number=1):
 
 
 def _find_rotatable_bonds(atoms):
+    """
+    Identify rotatable bonds between two heavy atoms, where one atom
+    has only one heavy bond partner and one or multiple hydrogen
+    partners.
+    These bonds are used to create new conformations for the relaxation
+    algorithm.
+
+    Parameters
+    ----------
+    atoms : AtomArray
+        The structure to find rotatable bonds in.
+    
+    Returns
+    -------
+    rotatable_bonds : list of tuple(int, int, bool, ndarray)
+        The rotatable bonds.
+        The tuple elements are
+
+            #. Atom index of heavy atom with bond hydrogen atoms.
+            #. Atom index of bonded heavy atom.
+            #. If false, the bond can only be rotated by 180°.
+            #. Atom indices of bonded hydrogen atoms
+    """
     cdef int i, j, h_i, bonded_i
 
     if atoms.bonds is None:

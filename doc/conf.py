@@ -4,15 +4,18 @@
 
 __author__ = "Patrick Kunzmann"
 
+try:
+    import pyximport
+    pyximport.install(
+        build_in_temp=False,
+        language_level=3
+    )
+except ImportError:
+    pass
+
 from os.path import realpath, dirname, join, isdir, isfile, basename
 from os import listdir, makedirs
 import sys
-import glob
-import shutil
-import matplotlib
-from importlib import import_module
-import types
-import abc
 
 doc_path = dirname(realpath(__file__))
 # Include gecos/src in PYTHONPATH

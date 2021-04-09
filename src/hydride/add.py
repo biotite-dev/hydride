@@ -13,6 +13,50 @@ from .names import AtomNameLibrary
 
 
 def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None):
+   """
+   Add hydrogen atoms to a structure.
+
+   The hydrogen atoms for each residue are placed directly behind the
+   atoms from this residue.
+   The function also tries to assign the correct atom name to each
+   added hydrogen atom.
+
+   Parameters
+   ----------
+   atoms : AtomArray, shape=(n,)
+      The structure, where hydrogen atoms should be added.
+      The structure must have an associated :class:`BondList`.
+      The structure must also include the *charge* annotation array,
+      depicting the formal charge for each atom.
+      The structure must not have any annotated hydrogen atoms, yet.
+   mask : ndarray, shape=(n,), dtype=bool, optional
+      A boolean mask that is true for each atom, where hydrogen atoms
+      should be added.
+      By default, hydrogen atoms are added to all applicable atoms.
+   fragment_library : FragmentLibrary
+      The fragment library to use for hydrogen position estimation.
+      By default :meth:`FragmentLibrary.standard_library()` is used,
+      containing fragments from all molecules in the
+      *RCSB* *Chemical Component Dictionary*.
+   name_library : AtomNameLibrary
+      The atom name library to use for hydrogen naming.
+      By default :meth:`AtomNameLibrary.standard_library()` is used,
+      containing atom names for the most prominent molecules including
+      amino acids and nucleotides.
+      For all other molecules the hydrogen atom names are guessed.
+
+   Returns
+   -------
+   hydrogenated_atoms : AtomArray, shape=(p,)
+      The atoms from the input `atoms` with additional hydrogen atoms.
+      Although, the hydrogen positions are meaningful with respect to
+      bond lengths and angles, the dihedral angles are not optimized.
+   original_atom_mask : ndarray, shape=(p,)
+      A boolean mask that is true for each atom in `hydrogenated_atoms`
+      that originates from the input `atoms`.
+      That means, that if the mask is applied to `hydrogenated_atoms`,
+      the input structure is restored.
+   """
    if mask is None:
       mask = np.ones(atoms.array_length(), dtype=bool)
 

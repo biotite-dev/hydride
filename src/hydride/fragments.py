@@ -15,6 +15,44 @@ import numpy as np
 
 
 class FragmentLibrary:
+    """
+    A molecule fragment library for estimation of hydrogen positions.
+
+    For each molecule added to the :class:`FragmentLibrary`,
+    the molecule is split into fragments.
+    Each fragment consists of
+
+        - A central heavy atom,
+        - bond order and position of its bonded heavy atoms and
+        - and positions of bonded hydrogen atoms.
+    
+    The properties of the fragment (central atom element,
+    central atom charge, order of connected bonds) are stored in
+    a dictionary mapping these properties to heavy and hydrogen atom
+    positions.
+
+    If hydrogen atoms should be added to a subject structure,
+    the subject structure is also split into fragments.
+    Now the corresponding reference fragment in the library dictionary
+    is accessed for each fragment.
+    The corresponding atom coordinates of the reference fragment
+    are superimposed [1]_ [2]_ onto the subject fragment to obtain the
+    hydrogen coordinates for the heavy atom.
+
+    The constructor of this class creates an empty library.
+
+    References
+    ----------
+    
+    .. [1] W Kabsch,
+       "A solution for the best rotation to relate two sets of vectors."
+       Acta Cryst, 32, 922-923 (1976).
+       
+    .. [2] W Kabsch,
+       "A discussion of the solution for the best rotation to relate
+       two sets of vectors."
+       Acta Cryst, 34, 827-828 (1978).
+    """
 
     _std_library = None
 
@@ -24,6 +62,16 @@ class FragmentLibrary:
 
     @staticmethod
     def standard_library():
+        """
+        Get the standard :class:`FragmentLibrary`.
+        The library contains fragments from all molecules in the
+        *RCSB* *Chemical Component Dictionary*.
+
+        Returns
+        -------
+        library : FragmentLibrary
+            The standard library.
+        """
         if FragmentLibrary._std_library is None:
             FragmentLibrary._std_library = FragmentLibrary()
             file_name = join(dirname(abspath(__file__)), "fragments.pickle")
@@ -34,6 +82,19 @@ class FragmentLibrary:
     
 
     def add_molecule(self, molecule):
+        """
+        Add the fragments of a molecule to the library.
+
+        Parameters
+        ----------
+        molecule : AtomArray
+            A molecule, whose fragments should be added to the library.
+            The structure must contain hydrogen atoms for each
+            applicable heavy atom.
+            The molecule must have an associated :class:`BondList`.
+            The molecule must also include the *charge* annotation
+            array, depicting the formal charge for each atom.
+        """
         fragments = _fragment(molecule)
         for i, fragment in enumerate(fragments):
             if fragment is None:
@@ -73,10 +134,32 @@ class FragmentLibrary:
 
     def calculate_hydrogen_coord(self, atoms, mask=None):
         """
+        Estimate the hydrogen coordinates for each atom in a given
+        structure/molecule.
+
+        Parameters
+        ----------
+        atoms : AtomArray, shape=(n,)
+            The structure to get the hydrogen atom positions for.
+            The structure must not contain any hydrogen atoms.
+            The structure must have an associated :class:`BondList`.
+            The structure must also include the *charge* annotation
+            array, depicting the formal charge for each atom.
+        mask : ndarray, shape=(n,), dtype=bool
+            A boolean mask that is true for each atom, where hydrogen
+            atom positions should be calculated.
+            By default, hydrogen atoms are calculated for all applicable
+            atoms.
+
         Returns
         -------
-        hydrogen_coord : ndarray, shape=(n,4,3), dtype=np.float32
-            Padded with *NaN* values.
+        hydrogen_coord : list of (ndarray, shape=(k,3), dtype=np.float32), length=n
+            A list of hydrogen coordinates for each atom in the input
+            `atoms`.
+            *k* is the number of hydrogen atoms for this atom.
+            Each atom, that is not included in the input `mask` or which
+            has no fitting fragment in the library,
+            has no corresponding hydrogen coordinates, i.e. *k* is 0.
         """
         if mask is None:
             mask = np.ones(atoms.array_length(), dtype=bool)
@@ -143,7 +226,7 @@ class FragmentLibrary:
         # non-centered central heavy subject atom
         sub_frag_hydrogen_coord += sub_frag_center_coord[:, np.newaxis, :]
         
-        # Turn into list ad remove NaN paddings
+        # Turn into list and remove NaN paddings
         sub_frag_hydrogen_coord = [
             # If the x-coordinate is NaN it is expected that
             # y and z are also NaN
@@ -154,6 +237,38 @@ class FragmentLibrary:
 
 
 def _fragment(atoms, mask=None):
+    """
+    Create fragments for the input structure/molecule.
+
+    Parameters
+    ----------
+    atoms : AtomArray, shape=(n,)
+        The structure to be fragmented.
+        The structure must have an associated :class:`BondList`.
+        The structure must also include the *charge* annotation
+        array, depicting the formal charge for each atom.
+    mask : ndarray, shape=(n,), dtype=bool
+        A boolean mask that is true for each atom for which a fragment
+        should be created.
+    
+    Returns
+    -------
+    fragments : list of tuple(str, int, int, ndarray, ndarray, ndarray), length=n
+        The fragments.
+        The tuple elements are
+
+            #. the central atom element,
+            #. the central atom charge,
+            #. the enantiomer for stereocenter
+               (``-1`` and ``1`` based on a custom nomenclature),
+            #. the :class:`BondType` for each bonded heavy atom,
+            #. the coordinates of the central atom,
+            #. 3 coordinates of bonded heavy atoms (includes padding
+               values, if there are not enough heavy atoms),
+            #. the coordinates of bonded hydrogen atoms.
+        
+        ``None`` for each atom not included by the `mask`.
+    """
     if mask is None:
         mask = np.ones(atoms.array_length(), dtype=bool)
 
@@ -280,6 +395,24 @@ def _fragment(atoms, mask=None):
 
 
 def _get_rotation_matrices(fixed, mobile):
+    """
+    Get the rotation matrices to superimpose the given mobile
+    coordinates into the given fixed coordinates, minimizing the RMSD.
+
+    Uses the *Kabsch* algorithm.
+
+    Parameters
+    ----------
+    fixed : ndarray, shape=(m,n,3), dtype=np.float32
+        The fixed coordinates.
+    mobile : ndarray, shape=(m,n,3), dtype=np.float32
+        The mobile coordinates.
+    
+    Returns
+    -------
+    matrices : ndarray, shape=(m,3,3), dtype=np.float32
+        The rotation matrices.
+    """
     # Calculate cross-covariance matrices
     cov = np.sum(fixed[:,:,:,np.newaxis] * mobile[:,:,np.newaxis,:], axis=1)
     v, s, w = np.linalg.svd(cov)
@@ -291,6 +424,16 @@ def _get_rotation_matrices(fixed, mobile):
 
 
 def _rotate(coord, matrices):
+    """
+    Apply a rotation on given coordinates.
+
+    Parameters
+    ----------
+    coord : ndarray, shape=(m,n,3), dtype=np.float32
+        The coordinates.
+    matrices : ndarray, shape=(m,3,3), dtype=np.float32
+        The rotation matrices.
+    """
     return np.transpose(
         np.matmul(matrices, np.transpose(coord, axes=(0, 2, 1))),
         axes=(0, 2, 1)
