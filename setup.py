@@ -129,10 +129,11 @@ mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
     for i, mol_name in enumerate(mol_names):
-        print(
-            f"Compiling fragment library... ({i+1}/{len(mol_names)})",
-            end="\r"
-        )
+        if not i % 100:
+            print(
+                f"Compiling fragment library... ({i}/{len(mol_names)})",
+                end="\r"
+            )
         try:
             mol = info.residue(mol_name)
         except KeyError:
@@ -199,6 +200,8 @@ setup(
 
     # Include fragment and atom name libraries
     package_data = {"hydride" : ["*.pickle"]},
+
+    entry_points = {"console_scripts": "hydride = hydride.cli:main"},
     
     install_requires = ["biotite >= 0.27",
                         "numpy >= 1.13"],
