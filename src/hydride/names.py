@@ -109,15 +109,24 @@ class AtomNameLibrary:
             if heavy_atom_name[-1] in string.digits:
                 # Atom name ends with number
                 # -> assume ligand atom naming
-                # C42 -> H42, H42A, H42B
                 number = int(
                     ''.join([c for c in heavy_atom_name if c.isdigit()])
                 )
-                yield f"H{number}"
-                i = 0
-                while True:
-                    yield f"H{number}{string.ascii_uppercase[i]}"
-                    i += 1
+                element = heavy_atom_name[0]
+                if element == "C":
+                    # C1 -> H1, H1A, H1B
+                    yield f"H{number}"
+                    i = 0
+                    while True:
+                        yield f"H{number}{string.ascii_uppercase[i]}"
+                        i += 1
+                else:
+                    # O1 -> HO1, HO1A, HO1B
+                    yield f"H{element}{number}"
+                    i = 0
+                    while True:
+                        yield f"H{element}{number}{string.ascii_uppercase[i]}"
+                        i += 1
             elif len(heavy_atom_name) > 1:
                 # e.g. CA -> HA, HA2, HA3, ...
                 suffix = heavy_atom_name[1:]
