@@ -26,7 +26,7 @@ def test_estimate_amino_acid_charges():
         ("GLU", "OE2") : -1,
         ("HIS", "ND1") :  0,
         ("LYS",  "NZ") :  1,
-        ("TYR",  "OH") :  1,
+        ("TYR",  "OH") :  0,
     }
     
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
