@@ -14,9 +14,10 @@ import biotite.structure as struc
 import biotite.structure.io.pdb as pdb
 import biotite.structure.io.pdbx as pdbx
 import biotite.structure.io.mmtf as mmtf
+from .add import add_hydrogen
+from. charge import estimate_amino_acid_charges
 from .fragments import FragmentLibrary
 from .names import AtomNameLibrary
-from .add import add_hydrogen
 from .relax import relax_hydrogen
 
 
@@ -97,7 +98,7 @@ def main(args=None):
     parser.add_argument(
         "--ignore", "-g", metavar="RESIDUE", action="append", nargs=2,
         help="No hydrogen atoms are added to the specified residue. "
-             "The format is '{name} {ID}', e.g. 'ALA 123'. "
+             "The format is '{chain} {residue}', e.g. 'A 123'. "
              "May be supplied multiple times, if multiple residues should be "
              "ignored."
     )
@@ -105,6 +106,13 @@ def main(args=None):
         "--model", "-m", type=int, metavar="NUMBER", default=1,
         help="The model number, if the input structure file contains multiple "
              "models."
+    )
+    parser.add_argument(
+        "--charges", "-c", type=float, metavar="PH",
+        help="Recalculate the charges of atoms in amino acids based on the "
+             "given pH value."
+             "This estimation does not take the surrounding amino acids into "
+             "account."
     )
     
     args = parser.parse_args(args=args)
@@ -171,23 +179,28 @@ def run(args):
         model = model[heavy_mask]
         pass
     
+    if args.charges:
+        aa_mask = struc.filter_amino_acids(model)
+        charges = estimate_amino_acid_charges(model, args.charges)
+        model.charge[aa_mask] = charges[aa_mask]
+    
     input_mask = np.ones(model.array_length(), dtype=bool)
     if args.ignore is not None:
-        for res_name, res_id in args.ignore:
+        for chain_id, res_id in args.ignore:
             res_id = int(res_id)
-            removal_mask = (model.res_name == res_name) & \
+            removal_mask = (model.chain_id == chain_id) & \
                            (model.res_id   == res_id)
             if not removal_mask.any():
                 raise UserInputError(
-                    f"Cannot find '{res_name} {res_id}' "
+                    f"Cannot find '{chain_id} {res_id}' "
                     "in the input structure"
                 )
-            input_mask[
-                (model.res_name == res_name) & (model.res_id == res_id)
-            ] = False
+            input_mask &= ~removal_mask
     
     model, _ = add_hydrogen(model, input_mask, frag_library, name_library)
     if not args.no_relax:
+        if args.iterations < 0:
+            raise UserInputError("The number of iterations must be positive")
         model.coord = relax_hydrogen(model, args.iterations)
     
     try:
@@ -204,6 +217,11 @@ def run(args):
 
 def read_structure(path, format, model_number):
     if format is None:
+        if path is None:
+            raise UserInputError(
+                "The input file format must be given, "
+                "if the input file is read from STDIN"
+            )
         format = guess_format(path)
     elif format == "cif":
         format = "pdbx"
@@ -220,7 +238,7 @@ def read_structure(path, format, model_number):
         if model_number > model_count:
             raise UserInputError(
                 f"Model number {model_number} is out of range "
-                f"for the input structure with {model_count}"
+                f"for the input structure with {model_count} models"
             )
         model = pdb.get_structure(
             pdb_file, model=model_number, extra_fields=["charge"]
@@ -233,7 +251,7 @@ def read_structure(path, format, model_number):
         if model_number > model_count:
             raise UserInputError(
                 f"Model number {model_number} is out of range "
-                f"for the input structure with {model_count}"
+                f"for the input structure with {model_count} models"
             )
         model = pdbx.get_structure(
             pdbx_file, model=model_number, extra_fields=["charge"]
@@ -246,21 +264,21 @@ def read_structure(path, format, model_number):
             mmtf_file = mmtf.MMTFFile.read(sys.stdin.buffer)
         else:
             mmtf_file = mmtf.MMTFFile.read(path)
-            model_count = mmtf.get_model_count(mmtf_file)
-            if model_number > model_count:
-                raise UserInputError(
-                    f"Model number {model_number} is out of range "
-                    f"for the input structure with {model_count}"
-                )
-            model = mmtf.get_structure(
-                mmtf_file, model=model_number, include_bonds=True,
-                extra_fields=["charge"]
+        model_count = mmtf.get_model_count(mmtf_file)
+        if model_number > model_count:
+            raise UserInputError(
+                f"Model number {model_number} is out of range "
+                f"for the input structure with {model_count} models"
             )
-            if model.bonds.get_bond_count() == 0:
-                # No bonds were stored in MMTF file
-                # -> Predict bonds 
-                model.bonds = struc.connect_via_residue_names(model)
-                # TODO also connect via distances for unknown molecules
+        model = mmtf.get_structure(
+            mmtf_file, model=model_number, include_bonds=True,
+            extra_fields=["charge"]
+        )
+        if model.bonds.get_bond_count() == 0:
+            # No bonds were stored in MMTF file
+            # -> Predict bonds 
+            model.bonds = struc.connect_via_residue_names(model)
+            # TODO also connect via distances for unknown molecules
     else:
         raise UserInputError(f"Unknown file format '{format}'")
     
@@ -269,7 +287,14 @@ def read_structure(path, format, model_number):
 
 def write_structure(path, format, model):
     if format is None:
+        if path is None:
+            raise UserInputError(
+                "The output file format must be given, "
+                "if the output written to STDOUT"
+            )
         format = guess_format(path)
+    elif format == "cif":
+        format = "pdbx"
     
     if path is None:
         path = sys.stdout
@@ -287,9 +312,11 @@ def write_structure(path, format, model):
         mmtf.set_structure(mmtf_file, model)
         if path == sys.stdout:
             # Special handling for binary output
-            mmtf_file.write(sys.stdin.buffer)
+            mmtf_file.write(sys.stdout.buffer)
         else:
             mmtf_file.write(path)
+    else:
+        raise UserInputError(f"Unknown file format '{format}'")
 
 
 def guess_format(path):

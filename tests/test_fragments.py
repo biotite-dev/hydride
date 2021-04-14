@@ -155,7 +155,7 @@ def test_stereocenter(lib_enantiomer, subject_enantiomer):
     ref_model = info.residue(subject_enantiomer)
 
     test_model = ref_model[ref_model.element != "H"]
-    # As the test case is constructed that the exact same molecule
+    # As the test case is constructed with the exact same molecule
     # can be in the library, move the molecule to assure that
     # correct hydrogen position calculation is not an artifact
     np.random.seed(0)
