@@ -4,7 +4,7 @@
 
 __name__ = "hydride"
 __author__ = "Patrick Kunzmann, Jacob Marcel Anter"
-__all__ = ["relax_hydrogen"]
+__all__ = ["relax_hydrogen", "EnergyFunction"]
 
 from libc.math cimport sin, cos
 cimport cython
@@ -12,7 +12,6 @@ cimport numpy as np
 
 import numpy as np
 import biotite.structure as struc
-import biotite.structure.info as info
 
 
 ctypedef np.uint8_t uint8
@@ -24,6 +23,121 @@ ctypedef np.float32_t float32
 cdef int SINGLE = struc.BondType.SINGLE
 cdef int DOUBLE = struc.BondType.DOUBLE
 cdef int AROMATIC_DOUBLE = struc.BondType.AROMATIC_DOUBLE
+
+
+# Values are taken from
+# Rappé et al.
+# "UFF, a Full Periodic Table Force Field
+# for Molecular Mechanics and Molecular Dynamics Simulations"
+# J Am Chem Soc, 114, 10024-10035 (1992)
+# https://doi.org/10.1021/ja00051a040
+cdef dict NB_VALUES = {
+    "H" : (2.886, 0.044),
+    "HE": (2.362, 0.056),
+    "LI": (2.451, 0.025),
+    "BE": (2.745, 0.085),
+    "B" : (4.083, 0.180),
+    "C" : (3.851, 0.105),
+    "N" : (3.660, 0.069),
+    "O" : (3.500, 0.060),
+    "F" : (3.364, 0.050),
+    "NE": (3.243, 0.042),
+    "NA": (2.983, 0.030),
+    "MG": (3.021, 0.111),
+    "AL": (4.499, 0.505),
+    "SI": (4.295, 0.402),
+    "P": (4.147, 0.305),
+    "S": (4.035, 0.274),
+    "CL": (3.947, 0.227),
+    "AR": (3.868, 0.185),
+    "K" : (3.812, 0.035),
+    "CA": (3.399, 0.238),
+    "SC": (3.295, 0.019),
+    "TI": (3.175, 0.017),
+    "V" : (3.144, 0.016),
+    "CR": (3.023, 0.015),
+    "MN": (2.961, 0.013),
+    "FE": (2.912, 0.013),
+    "CO": (2.872, 0.014),
+    "NI": (2.834, 0.015),
+    "CU": (3.495, 0.005),
+    "ZN": (2.763, 0.124),
+    "GA": (4.383, 0.415),
+    "GE": (4.280, 0.379),
+    "AS": (4.230, 0.309),
+    "SE": (4.205, 0.291),
+    "BR": (4.189, 0.251),
+    "KR": (4.141, 0.220),
+    "RB": (4.114, 0.040),
+    "SR": (3.641, 0.235),
+    "Y" : (3.345, 0.072),
+    "ZR": (3.124, 0.069),
+    "NB": (3.165, 0.059),
+    "MO": (3.052, 0.056),
+    "TC": (2.998, 0.048),
+    "RU": (2.963, 0.056),
+    "RH": (2.929, 0.053),
+    "PD": (2.899, 0.048),
+    "AG": (3.148, 0.036),
+    "CD": (2.848, 0.228),
+    "IN": (4.463, 0.599),
+    "SN": (4.392, 0.567),
+    "SB": (4.420, 0.449),
+    "TE": (4.470, 0.398),
+    "I" : (4.500, 0.339),
+    "XE": (4.404, 0.332),
+    "CS": (4.517, 0.045),
+    "BA": (3.703, 0.364),
+    "LA": (3.522, 0.017),
+    "CE": (3.556, 0.013),
+    "PR": (3.606, 0.010),
+    "ND": (3.575, 0.010),
+    "PM": (3.547, 0.009),
+    "SM": (3.520, 0.008),
+    "EU": (3.493, 0.008),
+    "GD": (3.368, 0.009),
+    "TB": (3.451, 0.007),
+    "DY": (3.428, 0.007),
+    "HO": (3.409, 0.007),
+    "ER": (3.391, 0.007),
+    "TM": (3.374, 0.006),
+    "YB": (3.355, 0.228),
+    "LU": (3.640, 0.041),
+    "HF": (3.141, 0.072),
+    "TA": (3.170, 0.081),
+    "W" : (3.069, 0.067),
+    "RE": (2.954, 0.066),
+    "OS": (3.120, 0.037),
+    "IR": (2.840, 0.073),
+    "PT": (2.754, 0.080),
+    "AU": (3.293, 0.039),
+    "HG": (2.705, 0.385),
+    "TL": (4.347, 0.680),
+    "PB": (4.297, 0.663),
+    "BI": (4.370, 0.518),
+    "PO": (4.709, 0.325),
+    "AT": (4.750, 0.284),
+    "RN": (4.765, 0.248),
+    "FR": (4.900, 0.050),
+    "RA": (3.677, 0.404),
+    "AC": (3.478, 0.033),
+    "TH": (3.396, 0.026),
+    "PA": (3.424, 0.022),
+    "U" : (3.395, 0.022),
+    "NP": (3.424, 0.019),
+    "PU": (3.424, 0.016),
+    "AM": (3.381, 0.014),
+    "CM": (3.326, 0.013),
+    "BK": (3.339, 0.013),
+    "CF": (3.313, 0.013),
+    "ES": (3.299, 0.012),
+    "FM": (3.286, 0.012),
+    "MD": (3.274, 0.011),
+    "NO": (3.248, 0.011),
+    "LW": (3.236, 0.011),
+}
+
+DEF DIELECTRIC_CONSTANT = 1.0
 
 
 class EnergyFunction:
@@ -50,18 +164,18 @@ class EnergyFunction:
         The force cutoff distance in Å.
         If the initial distance between two atoms exceeds this value,
         their interaction
-        (:math:`V_\text{El}` and :math:`V_\text{LJ}`) is not
+        (:math:`V_\text{el}` and :math:`V_\text{nb}`) is not
         calculated.
     partial_charges : ndarray, shape=(n,), dtype=float, optional
         The partial charges for each atom used to calculate
-        :math:`V_\text{El}`.
+        :math:`V_\text{el}`.
         By default the charges are calculated using
         :func:`biotite.structure.partial_charges()`.
     """
 
     def __init__(self, atoms, relevant_mask,
                  force_cutoff=10.0, partial_charges=None):
-        cdef int i, j, pair_i
+        cdef int i, j, k, pair_i
         cdef int32 atom_i, atom_j
 
 
@@ -84,65 +198,87 @@ class EnergyFunction:
             dtype=np.int32
         )
         cdef uint8[:] mask = relevant_mask.astype(np.uint8)
+        cdef int32[:,:] bond_indices = atoms.bonds.get_all_bonds()[0]
         pair_i = 0
-        for i in range(adj_indices.shape[0]):
+        for i in range(relevant_indices.shape[0]):
+            atom_i = relevant_indices[i]
             for j in range(adj_indices.shape[1]):
                 if adj_indices[i, j] == -1:
                     # Padding values
                     continue
-                atom_i = relevant_indices[i]
                 atom_j = adj_indices[i, j]
                 # Do not include H-H-interaction duplicates
                 # or an interaction of an atom to itself
-                if not mask[atom_j] or atom_j > atom_i:
-                    interaction_pairs[pair_i, 0] = atom_i
-                    interaction_pairs[pair_i, 1] = atom_j
-                    pair_i += 1
+                if atom_j <= atom_i:
+                    continue
+                # Do not include directly bonded atoms
+                # Hydrogen atoms only have a single bond partner
+                # -> it is sufficient to check the first entry
+                if bond_indices[atom_i, 0] == atom_j:
+                    continue
+                interaction_pairs[pair_i, 0] = atom_i
+                interaction_pairs[pair_i, 1] = atom_j
+                pair_i += 1
         # Trim to correct size
         self._interaction_pairs = np.asarray(interaction_pairs)[:pair_i]
 
 
-        # Calculate Coulomb parameters for interaction pairs
+        # Calculate electrostatic parameters for interaction pairs
         cdef float32[:] charges 
         if partial_charges is None:
             charges = struc.partial_charges(atoms)
         else:
             charges = partial_charges.astype(np.float32, copy=False)
-        cdef float32[:] coulomb_param  = np.zeros(pair_i, dtype=np.float32)
+        cdef float32[:] elec_param  = np.zeros(pair_i, dtype=np.float32)
         for i in range(pair_i):
-            coulomb_param[i] = (
+            elec_param[i] = 332.0673 / DIELECTRIC_CONSTANT * (
                 charges[interaction_pairs[i, 0]] * 
                 charges[interaction_pairs[i, 1]]
             )
-        self._coulomb_param  = np.asarray(coulomb_param)
+        self._elec_param  = np.asarray(elec_param)
 
 
-        # Calculate Lennart-Jones parameters for interaction pairs
-        cdef float32[:] vdw_radii = np.array(
-            [info.vdw_radius_single(element) for element in atoms.element],
+        # Calculate nonbonded parameters for interaction pairs
+        nb_values = np.array(
+            [NB_VALUES[element] for element in atoms.element],
             dtype=np.float32
         )
+        cdef float32[:] radii = nb_values[:,0]
+        cdef float32[:] scales = nb_values[:,1]
         cdef float32[:] r_6  = np.zeros(pair_i, dtype=np.float32)
         cdef float32[:] r_12 = np.zeros(pair_i, dtype=np.float32)
+        cdef float32[:] eps  = np.zeros(pair_i, dtype=np.float32)
         for i in range(pair_i):
-            r_6[i] = (-0.5 * (
-                vdw_radii[interaction_pairs[i, 0]] + 
-                vdw_radii[interaction_pairs[i, 1]]
+            r_6[i] = (0.5 * (
+                radii[interaction_pairs[i, 0]] + 
+                radii[interaction_pairs[i, 1]]
             ))**6
             r_12[i] = r_6[i]**2
+            eps[i] = scales[interaction_pairs[i, 0]] * \
+                     scales[interaction_pairs[i, 1]]
         self._r_6  = np.asarray(r_6)
         self._r_12 = np.asarray(r_12)
+        self._eps  = np.sqrt(np.asarray(eps))
 
 
     def __call__(self, coord):
         distances = struc.index_distance(coord, self._interaction_pairs) \
                     .astype(np.float32, copy=False)
         
+        #print(np.sum(self._elec_param / distances))
+        #print(np.sum(self._eps * (
+        #        -2 * self._r_6 / distances**6 + self._r_12 / distances**12
+        #    )))
+        #print()
+        #exit()
+        
         return np.sum(
             # Electrostatic interaction
-            self._coulomb_param / distances
-            # Lennart-Jones interaction
-            + self._r_6 * distances**6 + self._r_12 * distances**12
+            self._elec_param / distances
+            # nonbonded interaction
+            + self._eps * (
+                -2 * self._r_6 / distances**6 + self._r_12 / distances**12
+            )
         )
 
 
@@ -151,7 +287,7 @@ def relax_hydrogen(atoms, iteration_number=1):
     relax_hydrogen(atoms, iteration_number=1)
 
     Optimize the hydrogen atom positions using gradient descent
-    based on an electrostatic and Lennart-Jones potential.
+    based on an electrostatic and a nonbonded potential.
 
     Parameters
     ----------
@@ -174,13 +310,13 @@ def relax_hydrogen(atoms, iteration_number=1):
     
     .. math::
 
-        V = V_\text{El} + V_\text{LJ}
+        V = V_\text{el} + V_\text{nb}
         
-        V_\text{El} = \epsilon_\text{El}
+        V_\text{el} = \epsilon_\text{el}
         \sum_i^\text{H}  \sum_j^\text{All}
         \frac{q_i q_j}{D_{ij}}
 
-        E_\text{LJ} = \epsilon_\text{LJ}
+        E_\text{nb} = \epsilon_\text{nb}
         \sum_i^\text{H}  \sum_j^\text{All}
         \left(
             \frac{r_{ij}^{12}}{D_{ij}^{12}} - \frac{r_{ij}^6}{D_{ij}^6}
@@ -234,6 +370,7 @@ def relax_hydrogen(atoms, iteration_number=1):
 
     energy_function = EnergyFunction(atoms, hydrogen_mask)
     prev_energy = energy_function(coord)
+    print(prev_energy)
 
     np.random.seed(0)
     #seen_cord = np.zeros(coord.shape + (iteration_number,), dtype=np.float32)
@@ -254,12 +391,15 @@ def relax_hydrogen(atoms, iteration_number=1):
         # Get random angles
         n_free_rotations = np.count_nonzero(rotation_freedom)
         angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
-        angles[rotation_freedom] = np.random.rand(n_free_rotations) \
-                                   * 1.0 * 2*np.pi
+        angles[rotation_freedom] = np.random.choice(
+            np.array([-0.05, 0, 0.05]) * 2 * np.pi,
+            size = n_free_rotations,
+            p = (0.2, 0.6, 0.2)
+        )
         angles[~rotation_freedom] = np.random.choice(
             (0, np.pi),
             size = len(rotatable_bonds) - n_free_rotations,
-            p = (0.9, 0.1)
+            p = (0.8, 0.2)
         ) 
         angles_v = angles
         # Calculate rotation matrices for these angles
@@ -312,6 +452,7 @@ def relax_hydrogen(atoms, iteration_number=1):
         # Calculate energy for new conformation
         energy = energy_function(new_coord)
         if energy < prev_energy:
+            print(_, energy)
             prev_coord = new_coord
             prev_energy = energy
 
