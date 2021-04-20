@@ -30,7 +30,8 @@ from .util import data_dir
     "CHX", # Cyclohexane
     "CEJ", # 1,3-Cyclopentanedione
     "CN",  # Hydrogen cyanide
-    "11X"  # N-pyridin-3-ylmethylaniline
+    "11X", # N-pyridin-3-ylmethylaniline
+    "ANL", # Aniline
 ])
 def test_hydrogen_positions(res_name):
     """

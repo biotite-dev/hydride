@@ -28,7 +28,8 @@ import hydride
     "CHX", # Cyclohexane
     "CEJ", # 1,3-Cyclopentanedione
     "CN",  # Hydrogen cyanide
-    "11X"  # N-pyridin-3-ylmethylaniline
+    "11X", # N-pyridin-3-ylmethylaniline
+    "ANL", # Aniline
 ])
 def test_hydrogen_positions(res_name):
     """
@@ -122,6 +123,7 @@ def test_missing_fragment():
         UserWarning, match="Missing fragment for atom 'N1' at position 0"
     ):
         hydrogen_coord = lib.calculate_hydrogen_coord(test_mol)
+    print(hydrogen_coord)
     flattend_coord = []
     for coord in hydrogen_coord:
         flattend_coord += coord.tolist()
