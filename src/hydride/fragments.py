@@ -327,15 +327,11 @@ def _fragment(atoms, mask=None):
                 for rem_rem_index, bond_type in zip(
                     rem_bond_indices, rem_bond_types
                 ):
-                    # If the adjacent atom has a double bond to either
-                    # a nitrogen or oxygen atom or is part of an
-                    # aromatic system, the partial double bond
-                    # condition is fulfilled
-                    if bond_type == BondType.AROMATIC_DOUBLE or (
-                        bond_type == BondType.DOUBLE 
-                        and elements[rem_rem_index] in ("N", "O")
-                    ):
-                        heavy_types[j] = 7
+                    # If the adjacent atom has a double bond
+                    # the partial double bond condition is fulfilled
+                    if bond_type == BondType.AROMATIC_DOUBLE or \
+                       bond_type == BondType.DOUBLE:
+                            heavy_types[j] = 7
 
         n_heavy_bonds = np.count_nonzero(heavy_mask)
         if n_heavy_bonds == 0:

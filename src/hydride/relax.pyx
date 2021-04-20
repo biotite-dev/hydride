@@ -554,14 +554,9 @@ def _find_rotatable_bonds(atoms):
                             # padding value
                             break
                         rem_btype = all_bond_types[bonded_heavy_index, j]
-                        # If the adjacent atom has a double bond to
-                        # either a nitrogen or oxygen atom or is part of
-                        # an aromatic system, the partial double bond
-                        # condition is fulfilled
-                        if rem_btype == AROMATIC_DOUBLE or (
-                            rem_btype == DOUBLE 
-                            and (is_oxygen[rem_index] or is_nitrogen[rem_index])
-                        ):
+                        # If the adjacent atom has a double bond
+                        # the condition is fulfilled
+                        if rem_btype == AROMATIC_DOUBLE or rem_btype == DOUBLE:
                             is_free = False
                             break
             elif bonded_heavy_btype == DOUBLE:
