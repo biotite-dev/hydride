@@ -378,9 +378,10 @@ class MinimumFinder:
 
 
 
-def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi):
+def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi,
+                   return_trajectory=False):
     r"""
-    relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi)
+    relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi, return_trajectory=False)
 
     Optimize the hydrogen atom positions by rotating about terminal
     bonds.
@@ -470,7 +471,8 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi):
     minimum_finder = MinimumFinder(atoms, matrix_indices)
 
     np.random.seed(0)
-    #seen_cord = np.zeros(coord.shape + (iterations,), dtype=np.float32)
+    if return_trajectory:
+        trajectory = np.zeros((iterations,) + coord.shape, dtype=np.float32)
     #energies = np.zeros(iterations, dtype=np.float32)
     prev_coord = atoms.coord.copy()
     next_coord = np.zeros(prev_coord.shape, dtype=np.float32)
@@ -483,7 +485,7 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi):
     cdef float32 angle
     cdef float32 sin_a, cos_a, icos_a
     cdef float32 x, y, z
-    for _ in range(iterations):
+    for n in range(iterations):
         # Generate next hydrogen conformation
         n_free_rotations = np.count_nonzero(rotation_freedom)
         angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
@@ -547,9 +549,14 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi):
         
         # Calculate energy for next conformation
         prev_coord = minimum_finder.select_minimum(next_coord)
+        if return_trajectory:
+            trajectory[n] = prev_coord
         #print(minimum_finder.calculate_global_energy(prev_coord))
 
-    return prev_coord
+    if return_trajectory:
+        return trajectory
+    else:
+        return prev_coord
 
 
 def _find_rotatable_bonds(atoms):
