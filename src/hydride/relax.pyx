@@ -4,7 +4,7 @@
 
 __name__ = "hydride"
 __author__ = "Patrick Kunzmann, Jacob Marcel Anter"
-__all__ = ["relax_hydrogen", "EnergyFunction"]
+__all__ = ["relax_hydrogen", "MinimumFinder"]
 
 from libc.math cimport sin, cos
 cimport cython
@@ -140,7 +140,7 @@ cdef dict NB_VALUES = {
 DEF DIELECTRIC_CONSTANT = 1.0
 
 
-class EnergyFunction:
+class MinimumFinder:
     r"""
     __init__(atom_array, atoms, relevant_mask, force_cutoff=10.0, partial_charges=None)
 
@@ -173,15 +173,29 @@ class EnergyFunction:
         :func:`biotite.structure.partial_charges()`.
     """
 
-    def __init__(self, atoms, relevant_mask,
-                 force_cutoff=10.0, partial_charges=None):
+    def __init__(self, atoms, int32[:] groups,
+                 float32 force_cutoff=10.0, partial_charges=None):
         cdef int i, j, k, pair_i
         cdef int32 atom_i, atom_j
+        
+        if atoms.array_length() != groups.shape[0]:
+            raise ValueError(
+                f"There are {atoms.array_length()} atoms, "
+                f"but {groups.shape[0]} group indicators"
+            )
+        
+        self._prev_coord = atoms.coord.copy()
+        self._groups = np.asarray(groups)
+        self._n_groups = np.max(np.asarray(groups)) + 1
+        if self._n_groups < 1:
+            raise ValueError("Expected at least one movable group")
 
 
+        # Find proximate atoms for calcualtion of interacting pairs
         cell_list = struc.CellList(
             atoms, cell_size=force_cutoff
         )
+        relevant_mask = (np.asarray(groups) != -1)
         cdef int32[:] relevant_indices = np.where(relevant_mask)[0] \
                                          .astype(np.int32)
         cdef int32[:,:] adj_indices = cell_list.get_atoms(
@@ -189,12 +203,18 @@ class EnergyFunction:
             radius=force_cutoff
         )
 
+
         # Calculate which pairs of atoms interact with each other
         # with respect to the cutoff distance
+        # and to which movable atom group those pairs belong to
         # Array allocation with pessimistic size assumption.
         # In the worst case, there are no padded -1 values
         cdef int32[:,:] interaction_pairs = np.zeros(
             (adj_indices.shape[0] * adj_indices.shape[1], 2),
+            dtype=np.int32
+        )
+        cdef int32[:] interaction_groups = np.zeros(
+            (adj_indices.shape[0] * adj_indices.shape[1]),
             dtype=np.int32
         )
         cdef uint8[:] mask = relevant_mask.astype(np.uint8)
@@ -203,13 +223,13 @@ class EnergyFunction:
         for i in range(relevant_indices.shape[0]):
             atom_i = relevant_indices[i]
             for j in range(adj_indices.shape[1]):
-                if adj_indices[i, j] == -1:
+                atom_j = adj_indices[i, j]
+                if atom_j == -1:
                     # Padding values
                     continue
-                atom_j = adj_indices[i, j]
-                # Do not include H-H-interaction duplicates
-                # or an interaction of an atom to itself
-                if atom_j <= atom_i:
+                # Do not include interaction between hydrogen atoms from
+                # the same group
+                if groups[atom_i] == groups[atom_j]:
                     continue
                 # Do not include directly bonded atoms
                 # Hydrogen atoms only have a single bond partner
@@ -218,10 +238,13 @@ class EnergyFunction:
                     continue
                 interaction_pairs[pair_i, 0] = atom_i
                 interaction_pairs[pair_i, 1] = atom_j
+                interaction_groups[pair_i] = groups[atom_i]
                 pair_i += 1
         # Trim to correct size
-        self._interaction_pairs = np.asarray(interaction_pairs)[:pair_i]
-
+        self._interaction_pairs  = np.asarray(interaction_pairs )[:pair_i]
+        self._interaction_groups = np.asarray(interaction_groups)[:pair_i]
+        # Deduplicate interaction pairs for calculation of global energy
+        self._dedup_interaction_mask = self._deduplicate_pairs()
 
         # Calculate electrostatic parameters for interaction pairs
         cdef float32[:] charges 
@@ -261,18 +284,70 @@ class EnergyFunction:
         self._eps  = np.sqrt(np.asarray(eps))
 
 
-    def __call__(self, coord):
-        distances = struc.index_distance(coord, self._interaction_pairs) \
+    def calculate_group_energies(self, prev_coord, next_coord):
+        cdef int i
+        
+        diff = next_coord[self._interaction_pairs[:,0]] - \
+               prev_coord[self._interaction_pairs[:,1]]
+        distances = np.sqrt((diff*diff).sum(axis=-1)) \
+                    .astype(np.float32, copy=False)
+                    
+        cdef float32[:] pair_energies \
+            = self._pairwise_energy_function(distances)
+        
+        cdef float32[:] group_energies = np.zeros(
+            self._n_groups, dtype=np.float32
+        )
+        cdef int32[:] groups = self._interaction_groups
+        for i in range(pair_energies.shape[0]):
+            group_energies[groups[i]] += pair_energies[i]
+        
+        return np.asarray(group_energies)
+    
+
+    def calculate_global_energy(self, coord):
+        diff = coord[self._interaction_pairs[:,0]] - \
+               coord[self._interaction_pairs[:,1]]
+        distances = np.sqrt((diff*diff).sum(axis=-1)) \
                     .astype(np.float32, copy=False)
         
-        #print(np.sum(self._elec_param / distances))
-        #print(np.sum(self._eps * (
-        #        -2 * self._r_6 / distances**6 + self._r_12 / distances**12
-        #    )))
-        #print()
-        #exit()
+        energies = self._pairwise_energy_function(distances)
+        return np.sum(energies[self._dedup_interaction_mask])
+
+
+    def select_minimum(self, float32[:,:] next_coord):
+        """
+        Returns
+        -------
+        accepted_coord
+        """
+        cdef int i
+
+        prev_energies = self.calculate_group_energies(
+            self._prev_coord, self._prev_coord
+        )
         
-        return np.sum(
+        next_energies = self.calculate_group_energies(
+            self._prev_coord, np.asarray(next_coord)
+        )
+
+        cdef uint8[:] accept_next = (next_energies < prev_energies) \
+                                    .astype(np.uint8)
+        cdef int32[:] groups = self._groups
+        # The accepted next coordinates are the new prev coordinates
+        # for the next function call
+        cdef float32[:,:] prev_coord = self._prev_coord
+        for i in range(prev_coord.shape[0]):
+            if accept_next[groups[i]]:
+                prev_coord[i, 0] = next_coord[i, 0]
+                prev_coord[i, 1] = next_coord[i, 1]
+                prev_coord[i, 2] = next_coord[i, 2]
+        
+        return self._prev_coord
+    
+
+    def _pairwise_energy_function(self, distances):
+        return (
             # Electrostatic interaction
             self._elec_param / distances
             # nonbonded interaction
@@ -280,6 +355,25 @@ class EnergyFunction:
                 -2 * self._r_6 / distances**6 + self._r_12 / distances**12
             )
         )
+    
+
+    def _deduplicate_pairs(self):
+        cdef int i
+
+        cdef int32[:,:] dup_pairs = self._interaction_pairs
+        cdef int32[:] groups = self._groups
+
+        cdef uint8[:] mask = np.zeros(
+            dup_pairs.shape[0], dtype=np.uint8
+        )
+        for i in range(dup_pairs.shape[0]):
+            # Only use one atom pair order
+            # for the interaction of two hydrogen atoms
+            if dup_pairs[i, 1] > dup_pairs[i, 0] \
+               or groups[dup_pairs[i, 1]] == -1:
+                    mask[i] = True
+        return np.asarray(mask).astype(bool)
+
 
 
 def relax_hydrogen(atoms, iteration_number=1):
@@ -348,7 +442,6 @@ def relax_hydrogen(atoms, iteration_number=1):
     rotation_freedom = np.zeros(
         len(rotatable_bonds), dtype=bool
     )
-    hydrogen_mask = np.zeros(atoms.array_length(), dtype=bool)
     for i, (
         central_atom_index, bonded_atom_index, is_free, hydrogen_indices
     ) in enumerate(rotatable_bonds):
@@ -356,7 +449,6 @@ def relax_hydrogen(atoms, iteration_number=1):
         rotation_axes[i, 1] = coord[bonded_atom_index]
         matrix_indices[hydrogen_indices] = i
         rotation_freedom[i] = is_free
-        hydrogen_mask[hydrogen_indices] = True
     
     cdef float32[:,:,:] rot_mat_v = np.zeros(
         (len(rotatable_bonds), 3, 3), dtype=np.float32
@@ -368,39 +460,35 @@ def relax_hydrogen(atoms, iteration_number=1):
     cdef float32[:,:] support_v = rotation_axes[:, 0]
 
 
-    energy_function = EnergyFunction(atoms, hydrogen_mask)
-    prev_energy = energy_function(coord)
-    print(prev_energy)
+    minimum_finder = MinimumFinder(atoms, matrix_indices)
 
     np.random.seed(0)
     #seen_cord = np.zeros(coord.shape + (iteration_number,), dtype=np.float32)
     #energies = np.zeros(iteration_number, dtype=np.float32)
     prev_coord = atoms.coord.copy()
-    new_coord = np.zeros(prev_coord.shape, dtype=np.float32)
+    next_coord = np.zeros(prev_coord.shape, dtype=np.float32)
     # Helper variable for the support-subtracted vector
     center_coord = np.zeros(3, dtype=np.float32)
     cdef float32[:,:] prev_coord_v
-    cdef float32[:,:] new_coord_v
+    cdef float32[:,:] next_coord_v
     cdef float32[:] center_coord_v = center_coord
     cdef float32[:] angles_v
     cdef float32 angle
     cdef float32 sin_a, cos_a, icos_a
     cdef float32 x, y, z
     for _ in range(iteration_number):
-        # Generate new hydrogen conformation
-        # Get random angles
+        # Generate next hydrogen conformation
         n_free_rotations = np.count_nonzero(rotation_freedom)
         angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
+        # Rotate bonds with rotation freedom
+        # randomly either clockwise or counterclockwise
         angles[rotation_freedom] = np.random.choice(
-            np.array([-0.05, 0, 0.05]) * 2 * np.pi,
+            np.array([-0.02, 0.02]) * 2 * np.pi,
             size = n_free_rotations,
-            p = (0.2, 0.6, 0.2)
         )
-        angles[~rotation_freedom] = np.random.choice(
-            (0, np.pi),
-            size = len(rotatable_bonds) - n_free_rotations,
-            p = (0.8, 0.2)
-        ) 
+        # There is only one way
+        # to rotate a bond without rotation freedom
+        angles[~rotation_freedom] = np.pi
         angles_v = angles
         # Calculate rotation matrices for these angles
         for mat_i in range(angles_v.shape[0]):
@@ -425,9 +513,9 @@ def relax_hydrogen(atoms, iteration_number=1):
             rot_mat_v[mat_i, 2, 1] = icos_a*y*z + x*sin_a
             rot_mat_v[mat_i, 2, 2] = cos_a + icos_a*z**2
         # Apply matrices
-        new_coord = prev_coord.copy()
+        next_coord = prev_coord.copy()
         prev_coord_v = prev_coord
-        new_coord_v = new_coord
+        next_coord_v = next_coord
         for i in range(matrix_indices_v.shape[0]):
             mat_i = matrix_indices_v[i]
             if mat_i == -1:
@@ -441,20 +529,18 @@ def relax_hydrogen(atoms, iteration_number=1):
             # Iterate over each vector row
             # to perform the matrix-vector multiplication
             for j in range(3):
-                new_coord_v[i,j] = rot_mat_v[mat_i,j,0] * center_coord_v[0] + \
+                next_coord_v[i,j] = rot_mat_v[mat_i,j,0] * center_coord_v[0] + \
                                    rot_mat_v[mat_i,j,1] * center_coord_v[1] + \
                                    rot_mat_v[mat_i,j,2] * center_coord_v[2]
             # Readd support vector
-            new_coord_v[i, 0] += support_v[mat_i, 0]
-            new_coord_v[i, 1] += support_v[mat_i, 1]
-            new_coord_v[i, 2] += support_v[mat_i, 2]
+            next_coord_v[i, 0] += support_v[mat_i, 0]
+            next_coord_v[i, 1] += support_v[mat_i, 1]
+            next_coord_v[i, 2] += support_v[mat_i, 2]
 
-        # Calculate energy for new conformation
-        energy = energy_function(new_coord)
-        if energy < prev_energy:
-            print(_, energy)
-            prev_coord = new_coord
-            prev_energy = energy
+        
+        # Calculate energy for next conformation
+        prev_coord = minimum_finder.select_minimum(next_coord)
+        #print(minimum_finder.calculate_global_energy(prev_coord))
 
     return prev_coord
 
