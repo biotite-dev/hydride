@@ -14,6 +14,73 @@ from hydride.relax import _find_rotatable_bonds
 from .util import data_dir
 
 
+@pytest.mark.parametrize("seed", np.arange(10))
+def test_staggered(seed):
+    """
+    :func:`relax_hydrogen()` should be able to restore a staggered
+    conformation of ethane from any other conformation.
+    """
+    # Construct ethane in staggered conformation
+    ethane = struc.AtomArray(8)
+    ethane.element = np.array(["C", "C", "H", "H", "H", "H", "H", "H"])
+    ethane.coord = np.array([
+        [-0.756,  0.000,  0.000],
+        [ 0.756,  0.000,  0.000],
+        [-1.140,  0.659,  0.7845],
+        [-1.140,  0.350, -0.9626],
+        [-1.140, -1.009,  0.1781],
+        [ 1.140, -0.350,  0.9626],
+        [ 1.140,  1.009, -0.1781],
+        [ 1.140, -0.659, -0.7845],
+    ])
+    ethane.bonds = struc.BondList(
+        8,
+        np.array([
+            [0, 1, 1],
+            [0, 2, 1],
+            [0, 3, 1],
+            [0, 4, 1],
+            [1, 5, 1],
+            [1, 6, 1],
+            [1, 7, 1],
+        ])
+    )
+
+    # Check if created ethane is in optimal staggered conformation
+    # -> Dihedral angle of 60 degrees
+    dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
+    assert np.rad2deg(dihed) % 120 == pytest.approx(60, abs=1)
+
+    # Move the ethane molecule away
+    # from the optimal staggered conformation
+    np.random.seed(seed)
+    angle = np.random.rand() * 2 * np.pi
+    ethane.coord[5:] = struc.rotate_about_axis(
+        ethane.coord[5:],
+        angle = angle,
+        axis = ethane.coord[1] - ethane.coord[0],
+        support = ethane.coord[0]
+    )
+
+    # Check if new conformation ethane is not staggered anymore
+    dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
+    assert np.rad2deg(dihed) % 120 != pytest.approx(60, abs=1)
+
+    # Try to restore staggered conformation via relax_hydrogen()
+    ethane.coord = hydride.relax_hydrogen(
+        ethane,
+        # The angle increment must be smaller
+        # than the expected accuracy (abs=1)
+        angle_increment = np.deg2rad(0.5),
+        # High number of iterations due to small increment
+        iterations = 1000
+    )
+
+    # Check if staggered conformation is restored
+    dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
+    assert np.rad2deg(dihed) % 120 == pytest.approx(60, abs=1)
+
+
 def test_hydrogen_positions():
     """
     Check whether the relaxation algorithm is able to restore a high 
@@ -40,7 +107,7 @@ def test_hydrogen_bonds():
     atoms, _ = hydride.add_hydrogen(atoms)
     base_num = len(struc.hbond(atoms))
 
-    atoms.coord = hydride.relax_hydrogen(atoms, iteration_number=1000)
+    atoms.coord = hydride.relax_hydrogen(atoms, iterations=1000)
     test_num = len(struc.hbond(atoms))
 
     if base_num == ref_num:
