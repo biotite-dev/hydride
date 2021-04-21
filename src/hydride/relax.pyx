@@ -10,6 +10,7 @@ from libc.math cimport sin, cos
 cimport cython
 cimport numpy as np
 
+import warnings
 import numpy as np
 import biotite.structure as struc
 
@@ -20,6 +21,7 @@ ctypedef np.int32_t int32
 ctypedef np.float32_t float32
 
 
+cdef int ANY = struc.BondType.ANY
 cdef int SINGLE = struc.BondType.SINGLE
 cdef int DOUBLE = struc.BondType.DOUBLE
 cdef int AROMATIC_DOUBLE = struc.BondType.AROMATIC_DOUBLE
@@ -376,18 +378,23 @@ class MinimumFinder:
 
 
 
-def relax_hydrogen(atoms, iteration_number=1):
+def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi):
     r"""
-    relax_hydrogen(atoms, iteration_number=1)
+    relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi)
 
-    Optimize the hydrogen atom positions using gradient descent
-    based on an electrostatic and a nonbonded potential.
+    Optimize the hydrogen atom positions by rotating about terminal
+    bonds.
+    The relaxation uses gradient descent based on an electrostatic and
+    a nonbonded potential.
 
     Parameters
     ----------
     atoms : AtomArray, shape=(n,)
         The structure, whose hydrogen atoms should be relaxed.
-    iteration_number : int, optional
+        Must have an associated :class:`BondList`.
+        Note that :attr:`BondType.ANY` bonds are not considered
+        for rotation
+    iterations : int, optional
         The number of gradient descent iterations.
         The runtime scales approximately linearly with the number of
         iterations.
@@ -463,8 +470,8 @@ def relax_hydrogen(atoms, iteration_number=1):
     minimum_finder = MinimumFinder(atoms, matrix_indices)
 
     np.random.seed(0)
-    #seen_cord = np.zeros(coord.shape + (iteration_number,), dtype=np.float32)
-    #energies = np.zeros(iteration_number, dtype=np.float32)
+    #seen_cord = np.zeros(coord.shape + (iterations,), dtype=np.float32)
+    #energies = np.zeros(iterations, dtype=np.float32)
     prev_coord = atoms.coord.copy()
     next_coord = np.zeros(prev_coord.shape, dtype=np.float32)
     # Helper variable for the support-subtracted vector
@@ -476,14 +483,14 @@ def relax_hydrogen(atoms, iteration_number=1):
     cdef float32 angle
     cdef float32 sin_a, cos_a, icos_a
     cdef float32 x, y, z
-    for _ in range(iteration_number):
+    for _ in range(iterations):
         # Generate next hydrogen conformation
         n_free_rotations = np.count_nonzero(rotation_freedom)
         angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
         # Rotate bonds with rotation freedom
         # randomly either clockwise or counterclockwise
         angles[rotation_freedom] = np.random.choice(
-            np.array([-0.02, 0.02]) * 2 * np.pi,
+            [-angle_increment, angle_increment],
             size = n_free_rotations,
         )
         # There is only one way
@@ -581,7 +588,6 @@ def _find_rotatable_bonds(atoms):
 
     cdef uint8[:] is_hydrogen = (atoms.element == "H").astype(np.uint8)
     cdef uint8[:] is_nitrogen = (atoms.element == "N").astype(np.uint8)
-    cdef uint8[:] is_oxygen   = (atoms.element == "O").astype(np.uint8)
     
     cdef list rotatable_bonds = []
 
@@ -646,6 +652,13 @@ def _find_rotatable_bonds(atoms):
                             is_free = False
                             break
             elif bonded_heavy_btype == DOUBLE:
+                is_free = False
+            elif bonded_heavy_btype == ANY:
+                warnings.warn(
+                    "The given structure contains 'BondType.ANY' bonds, "
+                    "which cannot be rotated about"
+                )
+                is_rotatable = False
                 is_free = False
             else:
                 # Triple bond etc. -> no rotational freedom
