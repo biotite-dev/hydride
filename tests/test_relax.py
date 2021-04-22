@@ -2,7 +2,6 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
-import glob
 from os.path import join
 import pytest
 import numpy as np
@@ -120,18 +119,25 @@ def test_hydrogen_bonds():
 
 @pytest.mark.parametrize(
     "res_name, ref_bonds",
-    [
+    [   
+        # Fructopyranose
         ("FRU", [
-            ( "O1",  "C1",  True, ("HO1",)),
-            ( "O2",  "C2",  True, ("HO2",)),
-            ( "O3",  "C3",  True, ("HO3",)),
-            ( "O4",  "C4",  True, ("HO4",)),
-            ( "O6",  "C6",  True, ("HO6",)),
+            ( "O1",  "C1",  True,  ("HO1",)),
+            ( "O2",  "C2",  True,  ("HO2",)),
+            ( "O3",  "C3",  True,  ("HO3",)),
+            ( "O4",  "C4",  True,  ("HO4",)),
+            ( "O6",  "C6",  True,  ("HO6",)),
         ]),
+        # Argine with positive side chain
         ("ARG", [
-            (  "N",  "CA",  True, ("H", "H2")),
-            ("OXT",   "C",  True, ("HXT",)),
+            (  "N",  "CA",  True,  ("H", "H2")),
+            ("OXT",   "C",  True,  ("HXT",)),
         ]),
+        # 1-phenylguanidine
+        ("PL0", [
+            ( "N3",  "C7",  False, ("HN3",)),
+        ]),
+        # Water
         ("HOH", [
         ]),
     ]
