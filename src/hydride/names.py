@@ -77,10 +77,14 @@ class AtomNameLibrary:
             # Remove padding values
             bonded_indices = bonded_indices[bonded_indices != -1]
             # Set atom names of bonded hydrogen atoms as values
-            self._name_dict[(molecule.res_name[i], molecule.atom_name[i])] = [
+            hydrogen_names = [
                 molecule.atom_name[j] for j in bonded_indices
                 if molecule.element[j] == "H"
             ]
+            if len(hydrogen_names) > 0:
+                self._name_dict[
+                    (molecule.res_name[i], molecule.atom_name[i])
+                ] = hydrogen_names
 
         
     def generate_hydrogen_names(self, heavy_res_name, heavy_atom_name):
@@ -91,6 +95,7 @@ class AtomNameLibrary:
         If the residue is not found in the library, the hydrogen atom
         name is guessed based on common hydrogen naming schemes.
         """
+        print(heavy_res_name, heavy_atom_name)
         hydrogen_names = self._name_dict.get((heavy_res_name, heavy_atom_name))
         if hydrogen_names is not None:
             # Hydrogen names from library
