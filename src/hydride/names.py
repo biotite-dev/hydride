@@ -95,7 +95,6 @@ class AtomNameLibrary:
         If the residue is not found in the library, the hydrogen atom
         name is guessed based on common hydrogen naming schemes.
         """
-        print(heavy_res_name, heavy_atom_name)
         hydrogen_names = self._name_dict.get((heavy_res_name, heavy_atom_name))
         if hydrogen_names is not None:
             # Hydrogen names from library
