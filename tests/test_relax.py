@@ -80,34 +80,34 @@ def test_staggered(seed):
     assert np.rad2deg(dihed) % 120 == pytest.approx(60, abs=1)
 
 
-def test_hydrogen_positions():
-    """
-    Check whether the relaxation algorithm is able to restore a high 
-    percentage of the number of original hydrogen positions.
-    """
-    pass
-
-
 def test_hydrogen_bonds():
     """
     Check whether the relaxation algorithm is able to restore most of
     the original hydrogen bonds.
     The number of bonds found without relaxation is handled as baseline.
+    The residues at the biotin binding pocket of streptavidin (including
+    biotin itself) are used as test case.
     """
-    PERCENTAGE = 0.8
+    PERCENTAGE = 1.0
+    RES_IDS = (27, 43, 45, 47, 90, 300)
 
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "2rtg.mmtf"))
     atoms = mmtf.get_structure(
         mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
-    ref_num = len(struc.hbond(atoms))
+    atoms = atoms[atoms.chain_id == "B"]
+    #biotin = atoms[atoms.res_name == "BTN"]
+    mask = np.isin(atoms.res_id, RES_IDS)
+    ref_num = len(struc.hbond(atoms, mask, mask))
     
     atoms = atoms[atoms.element != "H"]
     atoms, _ = hydride.add_hydrogen(atoms)
-    base_num = len(struc.hbond(atoms))
+    mask = np.isin(atoms.res_id, RES_IDS)
+    base_num = len(struc.hbond(atoms, mask, mask))
 
-    atoms.coord = hydride.relax_hydrogen(atoms, iterations=1000)
-    test_num = len(struc.hbond(atoms))
+    atoms.coord = hydride.relax_hydrogen(atoms, iterations=100)
+    mask = np.isin(atoms.res_id, RES_IDS)
+    test_num = len(struc.hbond(atoms, mask, mask))
 
     if base_num == ref_num:
         ValueError(
@@ -128,10 +128,17 @@ def test_hydrogen_bonds():
             ( "O4",  "C4",  True,  ("HO4",)),
             ( "O6",  "C6",  True,  ("HO6",)),
         ]),
-        # Argine with positive side chain
+        # Arginine with positive side chain
         ("ARG", [
             (  "N",  "CA",  True,  ("H", "H2")),
             ("OXT",   "C",  True,  ("HXT",)),
+        ]),
+        # Isoleucine
+        ("ILE", [
+            (  "N",  "CA",  True,  ("H", "H2")),
+            ("OXT",   "C",  True,  ("HXT",)),
+            ("CG2",  "CB",  True,  ("HG21", "HG22", "HG23")),
+            ("CD1", "CG1",  True,  ("HD11", "HD12", "HD13")),
         ]),
         # 1-phenylguanidine
         ("PL0", [

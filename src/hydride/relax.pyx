@@ -139,7 +139,9 @@ cdef dict NB_VALUES = {
     "LW": (3.236, 0.011),
 }
 
-DEF DIELECTRIC_CONSTANT = 1.0
+HBOND_ELEMENTS = ("N", "O", "F", "S", "CL")
+
+DEF HBOND_FACTOR = 0.79
 
 
 class MinimumFinder:
@@ -178,7 +180,7 @@ class MinimumFinder:
     def __init__(self, atoms, int32[:] groups,
                  float32 force_cutoff=10.0, partial_charges=None):
         cdef int i, j, k, pair_i
-        cdef int32 atom_i, atom_j
+        cdef int32 atom_i, atom_j, bonded_atom_i
         
         if atoms.array_length() != groups.shape[0]:
             raise ValueError(
@@ -205,6 +207,9 @@ class MinimumFinder:
             radius=force_cutoff
         )
 
+        
+        cdef int32[:,:] bond_indices = atoms.bonds.get_all_bonds()[0]
+
 
         # Calculate which pairs of atoms interact with each other
         # with respect to the cutoff distance
@@ -220,7 +225,6 @@ class MinimumFinder:
             dtype=np.int32
         )
         cdef uint8[:] mask = relevant_mask.astype(np.uint8)
-        cdef int32[:,:] bond_indices = atoms.bonds.get_all_bonds()[0]
         pair_i = 0
         for i in range(relevant_indices.shape[0]):
             atom_i = relevant_indices[i]
@@ -233,7 +237,7 @@ class MinimumFinder:
                 # the same group
                 if groups[atom_i] == groups[atom_j]:
                     continue
-                # Do not include directly bonded atoms
+                # Do not include interaction to directly bonded atoms
                 # Hydrogen atoms only have a single bond partner
                 # -> it is sufficient to check the first entry
                 if bond_indices[atom_i, 0] == atom_j:
@@ -248,22 +252,23 @@ class MinimumFinder:
         # Deduplicate interaction pairs for calculation of global energy
         self._dedup_interaction_mask = self._deduplicate_pairs()
 
+
         # Calculate electrostatic parameters for interaction pairs
-        cdef float32[:] charges 
+        cdef float32[:] charges
         if partial_charges is None:
             charges = struc.partial_charges(atoms)
         else:
             charges = partial_charges.astype(np.float32, copy=False)
         cdef float32[:] elec_param  = np.zeros(pair_i, dtype=np.float32)
         for i in range(pair_i):
-            elec_param[i] = 332.0673 / DIELECTRIC_CONSTANT * (
+            elec_param[i] = 332.0673 * (
                 charges[interaction_pairs[i, 0]] * 
                 charges[interaction_pairs[i, 1]]
             )
         self._elec_param  = np.asarray(elec_param)
 
 
-        # Calculate nonbonded parameters for interaction pairs
+        # Calculate nonbonded (LJ) parameters for interaction pairs
         nb_values = np.array(
             [NB_VALUES[element] for element in atoms.element],
             dtype=np.float32
@@ -272,18 +277,39 @@ class MinimumFinder:
         cdef float32[:] scales = nb_values[:,1]
         cdef float32[:] r_6  = np.zeros(pair_i, dtype=np.float32)
         cdef float32[:] r_12 = np.zeros(pair_i, dtype=np.float32)
-        cdef float32[:] eps  = np.zeros(pair_i, dtype=np.float32)
+        cdef float32[:] sq_eps  = np.zeros(pair_i, dtype=np.float32)
+        # Special handlding for potential hydrogen bonds:
+        # If hydrogen in bound to a donor element the optimal distance 
+        # to the possible acceptor is decreased
+        cdef uint8[:] hbond_mask = np.isin(atoms.element, HBOND_ELEMENTS) \
+                                   .astype(np.uint8)
+        cdef float32 hbond_factor
+        # Calculate parameters for each H-X interaction
         for i in range(pair_i):
-            r_6[i] = (0.5 * (
-                radii[interaction_pairs[i, 0]] + 
-                radii[interaction_pairs[i, 1]]
+            atom_i = interaction_pairs[i, 0]
+            atom_j = interaction_pairs[i, 1]
+            # Hydrogen atoms only have a single bond partner
+            # -> it is sufficient to check the first entry
+            bonded_atom_i = bond_indices[atom_i, 0]
+            # Check if hydrogen has a bonded atom and this atom is a
+            # hydrogen bond donor
+            # and if the interaction partner is a hydrogen acceptor
+            if bonded_atom_i != -1 and hbond_mask[bonded_atom_i] \
+               and hbond_mask[atom_j]:
+                    # Potential hydrogen bond interaction
+                    # -> apply correction factor
+                    hbond_factor = HBOND_FACTOR
+            else:
+                    hbond_factor = 1.0
+            r_6[i] = (hbond_factor * 0.5 * (
+                radii[atom_i] + 
+                radii[atom_j]
             ))**6
             r_12[i] = r_6[i]**2
-            eps[i] = scales[interaction_pairs[i, 0]] * \
-                     scales[interaction_pairs[i, 1]]
+            sq_eps[i] = scales[atom_i] * scales[atom_j]
         self._r_6  = np.asarray(r_6)
         self._r_12 = np.asarray(r_12)
-        self._eps  = np.sqrt(np.asarray(eps))
+        self._eps  = np.sqrt(np.asarray(sq_eps))
 
 
     def calculate_group_energies(self, prev_coord, next_coord):
@@ -551,7 +577,6 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi,
         prev_coord = minimum_finder.select_minimum(next_coord)
         if return_trajectory:
             trajectory[n] = prev_coord
-        #print(minimum_finder.calculate_global_energy(prev_coord))
 
     if return_trajectory:
         return trajectory
