@@ -371,7 +371,7 @@ class MinimumFinder:
                 prev_coord[i, 1] = next_coord[i, 1]
                 prev_coord[i, 2] = next_coord[i, 2]
         
-        return self._prev_coord
+        return self._prev_coord, np.asarray(accept_next).any()
     
 
     def _pairwise_energy_function(self, distances):
@@ -404,7 +404,7 @@ class MinimumFinder:
 
 
 
-def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi,
+def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
                    return_trajectory=False):
     r"""
     relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi, return_trajectory=False)
@@ -496,7 +496,6 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi,
 
     minimum_finder = MinimumFinder(atoms, matrix_indices)
 
-    np.random.seed(0)
     if return_trajectory:
         trajectory = np.zeros((iterations,) + coord.shape, dtype=np.float32)
     #energies = np.zeros(iterations, dtype=np.float32)
@@ -504,6 +503,8 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi,
     next_coord = np.zeros(prev_coord.shape, dtype=np.float32)
     # Helper variable for the support-subtracted vector
     center_coord = np.zeros(3, dtype=np.float32)
+    # Variables for saving whether any changes were accepted in a step
+    cdef bint curr_accepted, prev_accepted = True
     cdef float32[:,:] prev_coord_v
     cdef float32[:,:] next_coord_v
     cdef float32[:] center_coord_v = center_coord
@@ -516,11 +517,8 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi,
         n_free_rotations = np.count_nonzero(rotation_freedom)
         angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
         # Rotate bonds with rotation freedom
-        # randomly either clockwise or counterclockwise
-        angles[rotation_freedom] = np.random.choice(
-            [-angle_increment, angle_increment],
-            size = n_free_rotations,
-        )
+        # alternatingly either clockwise or counterclockwise
+        angles[rotation_freedom] = angle_increment if n % 2 else -angle_increment
         # There is only one way
         # to rotate a bond without rotation freedom
         angles[~rotation_freedom] = np.pi
@@ -573,13 +571,25 @@ def relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi,
             next_coord_v[i, 2] += support_v[mat_i, 2]
 
         
-        # Calculate energy for next conformation
-        prev_coord = minimum_finder.select_minimum(next_coord)
+        # Calculate next conformation based on energy
+        curr_coord, curr_accepted = minimum_finder.select_minimum(next_coord)
+        if not curr_accepted and not prev_accepted:
+            # No coordinates were accepted from the current and previous
+            # step -> Relaxation converged -> Early termination
+            # If only no coordinates from the current were accepted,
+            # this would not be sufficient due to the alternating
+            # bond rotation (see above)
+            break
+        prev_coord = curr_coord
+        prev_accepted = curr_accepted
         if return_trajectory:
             trajectory[n] = prev_coord
 
     if return_trajectory:
-        return trajectory
+        # Trim to correct size in case the relaxation converged and
+        # there are less models than the number of iterations
+        # Exclusive stop -> n+1
+        return trajectory[:n+1]
     else:
         return prev_coord
 
