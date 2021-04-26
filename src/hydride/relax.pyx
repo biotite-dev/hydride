@@ -4,7 +4,7 @@
 
 __name__ = "hydride"
 __author__ = "Patrick Kunzmann, Jacob Marcel Anter"
-__all__ = ["relax_hydrogen", "MinimumFinder"]
+__all__ = ["relax_hydrogen"]
 
 from libc.math cimport sin, cos
 cimport cython
@@ -146,24 +146,29 @@ DEF HBOND_FACTOR = 0.79
 
 class MinimumFinder:
     r"""
-    __init__(atom_array, atoms, relevant_mask, force_cutoff=10.0, partial_charges=None)
+    __init__(self, atoms, groups, force_cutoff=10.0, partial_charges=None)
 
-    This class represents the energy function used for relaxation.
-
-    After construction, the energy and energy gradient dependent on the
-    dihedral angles is obtained by calling the object, with the
-    current atom coordinates.
+    This class evaluates an energy function based on given atom
+    coordinates and selects coordinates that perform better with respect
+    to the energy function than previous ones.
 
     Parameters
     ----------
     atoms : AtomArray, shape=(n,)
         The structure to calculate the energy values for.
-    relevant_mask : ndarray, shape=(n,), dtype=bool
-        This boolean mask specifies the atoms, whose positions are
-        variable and hence whose interactions with other atoms are
-        relevant.
-        Usually this includes all hydrogen atoms with rotational
-        freedom.
+        The *topology* of this :class:`AtomArray`
+        (bonds, charges, elements, etc.) is used to caluclate the
+        interacting atoms pairs as well as the force field parameters.
+        The coordinates are used as initial reference set of positions
+        for :meth:`select_minimum()`.
+    groups : ndarray, shape=(n,), dtype=np.int32
+        Groups of hydrogen atoms in `atoms`, whose positions are changed
+        via the same rotatable bond.
+        Each positive integer (including ``0``) represents one group,
+        i.e. all atoms with the same group integer are connected to the
+        same heavy atom.
+        ``-1`` indicates atoms that cannot be rotated
+        (haevy atoms, or non-rotatable hydrogen atoms).
     force_cutoff : float, optional
         The force cutoff distance in Å.
         If the initial distance between two atoms exceeds this value,
@@ -175,6 +180,11 @@ class MinimumFinder:
         :math:`V_\text{el}`.
         By default the charges are calculated using
         :func:`biotite.structure.partial_charges()`.
+    
+    See also
+    --------
+    relax_hydrogen
+        For explanation of the energy function.
     """
 
     def __init__(self, atoms, int32[:] groups,
@@ -249,8 +259,7 @@ class MinimumFinder:
         # Trim to correct size
         self._interaction_pairs  = np.asarray(interaction_pairs )[:pair_i]
         self._interaction_groups = np.asarray(interaction_groups)[:pair_i]
-        # Deduplicate interaction pairs for calculation of global energy
-        self._dedup_interaction_mask = self._deduplicate_pairs()
+        self._dedup_interaction_mask = None
 
 
         # Calculate electrostatic parameters for interaction pairs
@@ -310,30 +319,28 @@ class MinimumFinder:
         self._r_6  = np.asarray(r_6)
         self._r_12 = np.asarray(r_12)
         self._eps  = np.sqrt(np.asarray(sq_eps))
-
-
-    def calculate_group_energies(self, prev_coord, next_coord):
-        cdef int i
-        
-        diff = next_coord[self._interaction_pairs[:,0]] - \
-               prev_coord[self._interaction_pairs[:,1]]
-        distances = np.sqrt((diff*diff).sum(axis=-1)) \
-                    .astype(np.float32, copy=False)
-                    
-        cdef float32[:] pair_energies \
-            = self._pairwise_energy_function(distances)
-        
-        cdef float32[:] group_energies = np.zeros(
-            self._n_groups, dtype=np.float32
-        )
-        cdef int32[:] groups = self._interaction_groups
-        for i in range(pair_energies.shape[0]):
-            group_energies[groups[i]] += pair_energies[i]
-        
-        return np.asarray(group_energies)
     
 
     def calculate_global_energy(self, coord):
+        """
+        Calculate the global result of the energy function.
+
+        Parameters
+        ----------
+        coord : ndarray, shape=(n,3), dtype=np.float32
+            The coordinates of the atoms to calculate the energy for.
+
+        Returns
+        -------
+        energies : float
+            The energy calculated from the input atom coordinates.
+        """
+        if self._dedup_interaction_mask is None:
+            # H-H-Interaction are included twice in the standard
+            # interaction pairs, which would give wrong results
+            # -> Deduplicate these pairs 
+            self._dedup_interaction_mask = self._deduplicate_pairs()
+        
         diff = coord[self._interaction_pairs[:,0]] - \
                coord[self._interaction_pairs[:,1]]
         distances = np.sqrt((diff*diff).sum(axis=-1)) \
@@ -345,17 +352,40 @@ class MinimumFinder:
 
     def select_minimum(self, float32[:,:] next_coord):
         """
+        From a given set of updated coordinates select those
+        coordinates, that decrease the result of the energy function
+        compared to the current set of coordinates.
+
+        For each atom group, there are two available choices:
+        Either accepting the given `next_coord` or rejecting them and
+        keeping the current coordinates.
+        The current coordinates are the accepted coordinates from
+        the last call of :meth:`select_minimum()` or the input
+        coordinates of the constructor, if :meth:`select_minimum()`
+        was not called yet.
+
+        Parameters
+        ----------
+        next_coord : ndarray, shape=(n,3), dtype=np.float32
+            Updated coordinates to choose from.
+
         Returns
         -------
-        accepted_coord
+        accepted_coord : ndarray, shape=(n,3), dtype=np.float32
+            The accepted coordinates.
+            For each atom group it contains either the respective
+            coordinates from `next_coord` or the current coordinates.
+        any_accepted : bool
+            True, if any of the coordinates from `next_coord` were
+            accepted, false otherwise.
         """
         cdef int i
 
-        prev_energies = self.calculate_group_energies(
+        prev_energies = self._calculate_group_energies(
             self._prev_coord, self._prev_coord
         )
         
-        next_energies = self.calculate_group_energies(
+        next_energies = self._calculate_group_energies(
             self._prev_coord, np.asarray(next_coord)
         )
 
@@ -374,7 +404,63 @@ class MinimumFinder:
         return self._prev_coord, np.asarray(accept_next).any()
     
 
+    def _calculate_group_energies(self, prev_coord, next_coord):
+        """
+        Calculate the result of the energy function for each group,
+        based on the given atom coordinates.
+
+        Parameters
+        ----------
+        prev_coord, next_coord : ndarray, shape=(n,3), dtype=np.float32
+            For a group *i* each pairwise atom distance required for the
+            energy function is calculated between the `next_coord` of
+            an atom in group *i* and the `prev_coord` of the respective
+            interacting atoms.
+            To calculate the group energies for a single conformation,
+            `prev_coord` and `next_coord` can be given the same array.
+
+        Returns
+        -------
+        group_energies : ndarray, shape=(g,), dtype=np.float32
+            The energies for each group.
+            The group integer is used to get the energy for the
+            corresponding atom group.
+        """
+        cdef int i
+        
+        diff = next_coord[self._interaction_pairs[:,0]] - \
+               prev_coord[self._interaction_pairs[:,1]]
+        distances = np.sqrt((diff*diff).sum(axis=-1)) \
+                    .astype(np.float32, copy=False)
+                    
+        cdef float32[:] pair_energies \
+            = self._pairwise_energy_function(distances)
+        
+        cdef float32[:] group_energies = np.zeros(
+            self._n_groups, dtype=np.float32
+        )
+        cdef int32[:] groups = self._interaction_groups
+        for i in range(pair_energies.shape[0]):
+            group_energies[groups[i]] += pair_energies[i]
+        
+        return np.asarray(group_energies)
+
+
     def _pairwise_energy_function(self, distances):
+        """
+        The energy function, containing an electrostatic and a
+        non-bonded interaction term.
+
+        Parameters
+        ----------
+        distances : ndarray, shape(p,), dtype=np.float32
+            The distances for each pair of interacting atoms.
+        
+        Returns
+        -------
+        energy : float
+            The result of the energy function.
+        """
         return (
             # Electrostatic interaction
             self._elec_param / distances
@@ -386,6 +472,15 @@ class MinimumFinder:
     
 
     def _deduplicate_pairs(self):
+        """
+        Remove duplicate interaction pairs.
+
+        Returns
+        -------
+        mask : ndarray, shape(p,), dtype=bool
+            A boolean mask, that is true for all elements that should
+            persist.
+        """
         cdef int i
 
         cdef int32[:,:] dup_pairs = self._interaction_pairs
@@ -407,12 +502,12 @@ class MinimumFinder:
 def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
                    return_trajectory=False):
     r"""
-    relax_hydrogen(atoms, iterations=1, angle_increment=0.02*2*np.pi, return_trajectory=False)
+    relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi, return_trajectory=False)
 
     Optimize the hydrogen atom positions by rotating about terminal
     bonds.
-    The relaxation uses gradient descent based on an electrostatic and
-    a nonbonded potential.
+    The relaxation uses hill climbing based on an electrostatic and
+    a nonbonded potential [1]_.
 
     Parameters
     ----------
@@ -422,15 +517,30 @@ def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
         Note that :attr:`BondType.ANY` bonds are not considered
         for rotation
     iterations : int, optional
-        The number of gradient descent iterations.
+        The number of relaxation iterations.
         The runtime scales approximately linearly with the number of
         iterations.
+        If a local optimum has been found, i.e. the hydrogen coordinates
+        do not change anymore, the relaxation terminates regardless
+        of the remaining iterations.
+    angle_increment : float, optional
+        The angle in radians by which a bond can be rotated in each
+        iteration.
+        Smaller values increase the accurucy, but increase the number of
+        required iterations.
+    return_trajectory : bool, optional
+        If set to true, the resulting coordinates for each relaxation
+        step are returned, instead of the coordinates of the final
+        step
     
     Returns
     -------
-    relaxed_coord : ndarray, shape=(n,), dtype=np.float32
+    relaxed_coord : ndarray, shape=(n,) or shape=(m,n), dtype=np.float32
         The optimized coordinates.
         The coordinates for all heavy atoms remain unchanged.
+        if `return_trajectory` is set to true, not only the coordinates
+        after relaxation, but the coordinates from each step are
+        returned.
 
     Notes
     -----
@@ -440,23 +550,41 @@ def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
 
         V = V_\text{el} + V_\text{nb}
         
-        V_\text{el} = \epsilon_\text{el}
+        V_\text{el} = 332.067
         \sum_i^\text{H}  \sum_j^\text{All}
         \frac{q_i q_j}{D_{ij}}
 
-        E_\text{nb} = \epsilon_\text{nb}
+        E_\text{nb} = \epsilon_{ij}
         \sum_i^\text{H}  \sum_j^\text{All}
         \left(
-            \frac{r_{ij}^{12}}{D_{ij}^{12}} - \frac{r_{ij}^6}{D_{ij}^6}
+            \frac{r_{ij}^{12}}{D_{ij}^{12}} - 2\frac{r_{ij}^6}{D_{ij}^6}
         \right)
     
     where :math:`D_{ij}` is the distance between the atoms :math:`i`
-    and :math:`j` and :math:`r_{ij}` is calculated from the
-    *Van-der-Waals* radii :math:`R` as
+    and :math:`j`. :math:`\epsilon_{ij}` and :math:`r_{ij}` are the
+    well depth and optimal distance between these atoms, respectively,
+    and are calculated as
 
     .. math::
 
-        r_{ij} = \frac{R_i + R_j}{2}.
+         \epsilon_{ij} = \sqrt{ \epsilon_i  \epsilon_j},
+         
+         r_{ij} = \frac{r_i + r_j}{2}.
+    
+    :math:`\epsilon_{i/j}` and :math:`r_{i/j}` are taken from the
+    *Universal Force Field* [1]_ [2]_.
+
+    References
+    ----------
+    
+    .. [1] AK Rappé, CJ Casewit, KS Colwell, WA Goddard III and WM Skiff,
+       "UFF, a full periodic table force field for molecular mechanics
+       and molecular dynamics simulations."
+       J Am Chem Soc, 114, 10024-10035 (1992).
+   
+    .. [2] T Ogawa and T Nakano,
+       "The Extended Universal Force Field (XUFF): Theory and applications."
+       CBIJ, 10, 111-133 (2010)
     """
     cdef int i, j, mat_i
 

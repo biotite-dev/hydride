@@ -5,9 +5,11 @@
 __author__ = "Patrick Kunzmann"
 
 try:
+    import numpy as np
     import pyximport
     pyximport.install(
         build_in_temp=False,
+        setup_args={"include_dirs":np.get_include()},
         language_level=3
     )
 except ImportError:
