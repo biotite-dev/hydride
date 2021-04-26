@@ -211,6 +211,20 @@ def test_ignored_residues(input_file, output_file):
         ).any()
 
 
+def test_limited_iterations(input_file, output_file):
+    """
+    Test CLI run with ``--iterations`` parameter.
+    """
+    run_cli([
+        "-v",
+        "-i", input_file,
+        "-o", output_file,
+        "-c", str(PH),
+        "--iterations", str(100)
+    ])
+
+    assert_hydrogen_addition(output_file)
+
 
 def test_invalid_iteratons(input_file, dummy_output_file):
     with pytest.raises(SystemExit) as wrapped_exception:

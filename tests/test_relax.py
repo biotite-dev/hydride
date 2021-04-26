@@ -67,12 +67,10 @@ def test_staggered(seed):
 
     # Try to restore staggered conformation via relax_hydrogen()
     ethane.coord = hydride.relax_hydrogen(
-        ethane,
+        ethane, 1000,
         # The angle increment must be smaller
         # than the expected accuracy (abs=1)
         angle_increment = np.deg2rad(0.5),
-        # High number of iterations due to small increment
-        iterations = 1000
     )
 
     # Check if staggered conformation is restored
@@ -96,7 +94,6 @@ def test_hydrogen_bonds():
         mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
     atoms = atoms[atoms.chain_id == "B"]
-    #biotin = atoms[atoms.res_name == "BTN"]
     mask = np.isin(atoms.res_id, RES_IDS)
     ref_num = len(struc.hbond(atoms, mask, mask))
     
@@ -105,7 +102,7 @@ def test_hydrogen_bonds():
     mask = np.isin(atoms.res_id, RES_IDS)
     base_num = len(struc.hbond(atoms, mask, mask))
 
-    atoms.coord = hydride.relax_hydrogen(atoms, iterations=100)
+    atoms.coord = hydride.relax_hydrogen(atoms)
     mask = np.isin(atoms.res_id, RES_IDS)
     test_num = len(struc.hbond(atoms, mask, mask))
 
@@ -168,3 +165,45 @@ def test_bond_identification(res_name, ref_bonds):
             tuple(np.sort(molecule.atom_name[h_indices]))
         )
         assert bond_tuple in ref_bonds
+
+
+def test_return_trajectory():
+    """
+    Test whether the `return_trajectory` works properly.
+    It is expected that :func:`relax_hydrogen()` returns multiple
+    models.
+    """
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+
+    traj_coord = hydride.relax_hydrogen(atoms, return_trajectory=True)
+
+    assert traj_coord.ndim == 3
+    # Last model in trajectory should be the same result
+    # as running 'relax_hydrogen()' without 'return_trajectory=True'
+    assert np.array_equal(traj_coord[-1], hydride.relax_hydrogen(atoms))
+
+
+def test_limited_iterations():
+    """
+    Test whether the `iterations` works properly.
+    It is expected that the number of returned models,
+    if `return_trajectory, is set to true, is equal to the given number
+    of maximum iterations.
+    That is only true, if the number of iterations is low enough,
+    so that the relaxation does not terminate before.
+    """
+    ITERATIONS = 10
+    
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+
+    traj_coord = hydride.relax_hydrogen(
+        atoms, ITERATIONS, return_trajectory=True
+    )
+
+    assert traj_coord.shape[0] == ITERATIONS

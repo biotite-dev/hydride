@@ -75,10 +75,13 @@ def main(args=None):
              "conformations will not be resolved."
     )
     parser.add_argument(
-        "--iterations", "-n", type=int, metavar="NUMBER", default=10,
-        help="The number of gradient descent iterations. "
-             "The runtime of the relaxation step scales approximately "
-             "linear with this values"
+        "--iterations", "-n", type=int, metavar="NUMBER",
+        help="The maximum number of relaxation iterations. "
+             "The runtime of the relaxation scales approximately "
+             "linear with this value, if the relaxation does not "
+             "terminate before. "
+             "By default, the relaxation runs until a local optimum "
+             "has been reached."
     )
     parser.add_argument(
         "--fragments", "-f", metavar="FILE", action="append",
@@ -199,7 +202,7 @@ def run(args):
     
     model, _ = add_hydrogen(model, input_mask, frag_library, name_library)
     if not args.no_relax:
-        if args.iterations < 0:
+        if args.iterations is not None and args.iterations < 0:
             raise UserInputError("The number of iterations must be positive")
         model.coord = relax_hydrogen(model, args.iterations)
     

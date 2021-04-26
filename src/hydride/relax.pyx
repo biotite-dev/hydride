@@ -323,6 +323,8 @@ class MinimumFinder:
 
     def calculate_global_energy(self, coord):
         """
+        calculate_global_energy(self, coord)
+
         Calculate the global result of the energy function.
 
         Parameters
@@ -350,8 +352,10 @@ class MinimumFinder:
         return np.sum(energies[self._dedup_interaction_mask])
 
 
-    def select_minimum(self, float32[:,:] next_coord):
+    def select_minimum(self, float32[:,:] next_coord, threshold=1e-4):
         """
+        select_minimum(self, next_coord, threshold=1e-2)
+
         From a given set of updated coordinates select those
         coordinates, that decrease the result of the energy function
         compared to the current set of coordinates.
@@ -378,6 +382,11 @@ class MinimumFinder:
         any_accepted : bool
             True, if any of the coordinates from `next_coord` were
             accepted, false otherwise.
+        threshold : float, optional
+            For each group the energy difference between `next_coord`
+            and the current coordinates must be greater than this value,
+            to be accepted.
+            This compensates for numerical instabilities.
         """
         cdef int i
 
@@ -389,8 +398,9 @@ class MinimumFinder:
             self._prev_coord, np.asarray(next_coord)
         )
 
-        cdef uint8[:] accept_next = (next_energies < prev_energies) \
-                                    .astype(np.uint8)
+        cdef uint8[:] accept_next = (
+            next_energies < prev_energies - threshold
+        ).astype(np.uint8)
         cdef int32[:] groups = self._groups
         # The accepted next coordinates are the new prev coordinates
         # for the next function call
@@ -499,10 +509,10 @@ class MinimumFinder:
 
 
 
-def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
+def relax_hydrogen(atoms, iterations=None, angle_increment=0.02*2*np.pi,
                    return_trajectory=False):
     r"""
-    relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi, return_trajectory=False)
+    relax_hydrogen(atoms, iterations=None, angle_increment=0.02*2*np.pi, return_trajectory=False)
 
     Optimize the hydrogen atom positions by rotating about terminal
     bonds.
@@ -520,9 +530,10 @@ def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
         The number of relaxation iterations.
         The runtime scales approximately linearly with the number of
         iterations.
-        If a local optimum has been found, i.e. the hydrogen coordinates
-        do not change anymore, the relaxation terminates regardless
-        of the remaining iterations.
+        By default, the relaxation runs until a local optimum has been
+        found, i.e. the hydrogen coordinates do not change anymore.
+        If this parameter is set, the relaxation terminates after the
+        given number of interations.
     angle_increment : float, optional
         The angle in radians by which a bond can be rotated in each
         iteration.
@@ -590,6 +601,9 @@ def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
 
     coord = atoms.coord
 
+    if iterations is not None and iterations < 0:
+        raise ValueError("The number of iterations must be positive")
+
     rotatable_bonds = _find_rotatable_bonds(atoms)
     if len(rotatable_bonds) == 0:
         # No bond to optimize
@@ -625,8 +639,7 @@ def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
     minimum_finder = MinimumFinder(atoms, matrix_indices)
 
     if return_trajectory:
-        trajectory = np.zeros((iterations,) + coord.shape, dtype=np.float32)
-    #energies = np.zeros(iterations, dtype=np.float32)
+        trajectory = []
     prev_coord = atoms.coord.copy()
     next_coord = np.zeros(prev_coord.shape, dtype=np.float32)
     # Helper variable for the support-subtracted vector
@@ -640,7 +653,13 @@ def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
     cdef float32 angle
     cdef float32 sin_a, cos_a, icos_a
     cdef float32 x, y, z
-    for n in range(iterations):
+    n = 0
+    # Loop terminates via break if result converges
+    # or iteration number is exceeded
+    while True:
+        if iterations is not None and n >= iterations:
+            break
+        
         # Generate next hydrogen conformation
         n_free_rotations = np.count_nonzero(rotation_freedom)
         angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
@@ -711,13 +730,13 @@ def relax_hydrogen(atoms, iterations=100, angle_increment=0.02*2*np.pi,
         prev_coord = curr_coord
         prev_accepted = curr_accepted
         if return_trajectory:
-            trajectory[n] = prev_coord
+            trajectory.append(prev_coord.copy())
+        print(minimum_finder.calculate_global_energy(prev_coord))
+        
+        n += 1
 
     if return_trajectory:
-        # Trim to correct size in case the relaxation converged and
-        # there are less models than the number of iterations
-        # Exclusive stop -> n+1
-        return trajectory[:n+1]
+        return np.stack(trajectory)
     else:
         return prev_coord
 
