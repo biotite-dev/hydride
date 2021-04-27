@@ -197,16 +197,16 @@ def test_partial_charges(ethane, repulsive):
     """
     Test whether the `partial_charges` parameter is properly used, by
     giving one hydrogen atom on each carbon atom of ethane an
-    unphysical high charge, either attractive or repulsive.
+    unphysical charge, either attractive or repulsive to each other.
     This should give result conformations that strongly deviate from
     the staggered conformation, since the electrostatic term should
     minimize or maximize the distance between these hydrogen atoms,
     respectively.
     """
     if repulsive:
-        charges = np.array([0, 0, 10, 0, 0, 10, 0, 0])
+        charges = np.array([0, 0, 1, 0, 0, 1, 0, 0])
     else:
-        charges = np.array([0, 0, -10, 0, 0, 10, 0, 0])
+        charges = np.array([0, 0, -1, 0, 0, 1, 0, 0])
     
     ethane.coord = hydride.relax_hydrogen(
         ethane,
