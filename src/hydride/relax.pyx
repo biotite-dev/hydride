@@ -146,7 +146,7 @@ DEF HBOND_FACTOR = 0.79
 
 class MinimumFinder:
     r"""
-    __init__(self, atoms, groups, force_cutoff=10.0, partial_charges=None)
+    __init__(self, atoms, groups, partial_charges=None, force_cutoff=10.0)
 
     This class evaluates an energy function based on given atom
     coordinates and selects coordinates that perform better with respect
@@ -157,7 +157,7 @@ class MinimumFinder:
     atoms : AtomArray, shape=(n,)
         The structure to calculate the energy values for.
         The *topology* of this :class:`AtomArray`
-        (bonds, charges, elements, etc.) is used to caluclate the
+        (bonds, charges, elements, etc.) is used to calculate the
         interacting atoms pairs as well as the force field parameters.
         The coordinates are used as initial reference set of positions
         for :meth:`select_minimum()`.
@@ -169,17 +169,17 @@ class MinimumFinder:
         same heavy atom.
         ``-1`` indicates atoms that cannot be rotated
         (haevy atoms, or non-rotatable hydrogen atoms).
+    partial_charges : ndarray, shape=(n,), dtype=float, optional
+        The partial charges for each atom used to calculate
+        :math:`V_\text{el}`.
+        By default the charges are calculated using
+        :func:`biotite.structure.partial_charges()`.
     force_cutoff : float, optional
         The force cutoff distance in Å.
         If the initial distance between two atoms exceeds this value,
         their interaction
         (:math:`V_\text{el}` and :math:`V_\text{nb}`) is not
         calculated.
-    partial_charges : ndarray, shape=(n,), dtype=float, optional
-        The partial charges for each atom used to calculate
-        :math:`V_\text{el}`.
-        By default the charges are calculated using
-        :func:`biotite.structure.partial_charges()`.
     
     See also
     --------
@@ -187,8 +187,8 @@ class MinimumFinder:
         For explanation of the energy function.
     """
 
-    def __init__(self, atoms, int32[:] groups,
-                 float32 force_cutoff=10.0, partial_charges=None):
+    def __init__(self, atoms, int32[:] groups, partial_charges=None,
+                 float32 force_cutoff=10.0):
         cdef int i, j, k, pair_i
         cdef int32 atom_i, atom_j, bonded_atom_i
         
@@ -510,7 +510,7 @@ class MinimumFinder:
 
 
 def relax_hydrogen(atoms, iterations=None, angle_increment=0.02*2*np.pi,
-                   return_trajectory=False):
+                   return_trajectory=False, partial_charges=None):
     r"""
     relax_hydrogen(atoms, iterations=None, angle_increment=0.02*2*np.pi, return_trajectory=False)
 
@@ -636,7 +636,7 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=0.02*2*np.pi,
     cdef float32[:,:] support_v = rotation_axes[:, 0]
 
 
-    minimum_finder = MinimumFinder(atoms, matrix_indices)
+    minimum_finder = MinimumFinder(atoms, matrix_indices, partial_charges)
 
     if return_trajectory:
         trajectory = []

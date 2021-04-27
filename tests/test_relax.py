@@ -13,12 +13,8 @@ from hydride.relax import _find_rotatable_bonds
 from .util import data_dir
 
 
-@pytest.mark.parametrize("seed", np.arange(10))
-def test_staggered(seed):
-    """
-    :func:`relax_hydrogen()` should be able to restore a staggered
-    conformation of ethane from any other conformation.
-    """
+@pytest.fixture
+def ethane():
     # Construct ethane in staggered conformation
     ethane = struc.AtomArray(8)
     ethane.element = np.array(["C", "C", "H", "H", "H", "H", "H", "H"])
@@ -44,12 +40,22 @@ def test_staggered(seed):
             [1, 7, 1],
         ])
     )
+    ethane.set_annotation("charge", np.zeros(ethane.array_length(), dtype=int))
 
     # Check if created ethane is in optimal staggered conformation
     # -> Dihedral angle of 60 degrees
     dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
     assert np.rad2deg(dihed) % 120 == pytest.approx(60, abs=1)
 
+    return ethane
+
+
+@pytest.mark.parametrize("seed", np.arange(10))
+def test_staggered(ethane, seed):
+    """
+    :func:`relax_hydrogen()` should be able to restore a staggered
+    conformation of ethane from any other conformation.
+    """
     # Move the ethane molecule away
     # from the optimal staggered conformation
     np.random.seed(seed)
@@ -67,7 +73,7 @@ def test_staggered(seed):
 
     # Try to restore staggered conformation via relax_hydrogen()
     ethane.coord = hydride.relax_hydrogen(
-        ethane, 1000,
+        ethane,
         # The angle increment must be smaller
         # than the expected accuracy (abs=1)
         angle_increment = np.deg2rad(0.5),
@@ -184,6 +190,39 @@ def test_return_trajectory():
     # Last model in trajectory should be the same result
     # as running 'relax_hydrogen()' without 'return_trajectory=True'
     assert np.array_equal(traj_coord[-1], hydride.relax_hydrogen(atoms))
+
+
+@pytest.mark.parametrize("repulsive", [False, True])
+def test_partial_charges(ethane, repulsive):
+    """
+    Test whether the `partial_charges` parameter is properly used, by
+    giving one hydrogen atom on each carbon atom of ethane an
+    unphysical high charge, either attractive or repulsive.
+    This should give result conformations that strongly deviate from
+    the staggered conformation, since the electrostatic term should
+    minimize or maximize the distance between these hydrogen atoms,
+    respectively.
+    """
+    if repulsive:
+        charges = np.array([0, 0, 10, 0, 0, 10, 0, 0])
+    else:
+        charges = np.array([0, 0, -10, 0, 0, 10, 0, 0])
+    
+    ethane.coord = hydride.relax_hydrogen(
+        ethane,
+        # The angle increment must be smaller
+        # than the expected accuracy (abs=1)
+        angle_increment = np.deg2rad(0.5),
+        partial_charges = charges
+    )
+
+    # Check if staggered conformation is restored
+    dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
+    if repulsive:
+        exp_angle = 180
+    else:
+        exp_angle = 0
+    assert np.rad2deg(dihed) % 360 == pytest.approx(exp_angle, abs=1)
 
 
 def test_limited_iterations():
