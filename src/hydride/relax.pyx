@@ -530,7 +530,8 @@ class MinimumFinder:
 
 
 def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
-                   return_trajectory=False, return_energies=False, partial_charges=None):
+                   return_trajectory=False, return_energies=False,
+                   partial_charges=None):
     r"""
     relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10), return_trajectory=False, return_energies=False, partial_charges=None)
 
