@@ -88,7 +88,7 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None):
          hydrogenated_atoms.add_annotation(
             category, dtype=atoms.get_annotation(category).dtype
          )
-   if hydrogenated_atoms.box is not None:
+   if atoms.box is not None:
       hydrogenated_atoms.box = atoms.box.copy()
 
    # Fill the combined AtomArray residue for residue
