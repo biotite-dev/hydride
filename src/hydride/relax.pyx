@@ -450,6 +450,20 @@ class MinimumFinder:
         
         
     def _sum_for_groups(self, float32[:] values):
+        """
+        Sum up values (e.g. energies) for interaction pairs into
+        values for the respective atom groups.
+
+        Parameters
+        ----------
+        values : ndarray, shape=(p,), dtype=np.float32
+            The input values.
+        
+        Returns
+        -------
+        values : ndarray, shape=(g,), dtype=np.float32
+            The summed values.
+        """
         cdef int i
         
         cdef float32[:] group_values = np.zeros(
@@ -518,7 +532,7 @@ class MinimumFinder:
 def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
                    return_trajectory=False, return_energies=False, partial_charges=None):
     r"""
-    relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10), return_trajectory=False)
+    relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10), return_trajectory=False, return_energies=False, partial_charges=None)
 
     Optimize the hydrogen atom positions by rotating about terminal
     bonds.
@@ -548,7 +562,11 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
     return_trajectory : bool, optional
         If set to true, the resulting coordinates for each relaxation
         step are returned, instead of the coordinates of the final
-        step
+        step.
+    return_energies : bool, optional
+        If set to true, also the calculated energy for the conformation
+        of each relaxation step is returned.
+        This parameter can be useful for monitoring and debugging.
     
     Returns
     -------
@@ -558,6 +576,9 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
         if `return_trajectory` is set to true, not only the coordinates
         after relaxation, but the coordinates from each step are
         returned.
+    energies : ndarray, shape=(m,), dtype=np.float32
+        The energy for each step.
+        Only returned, if `return_energies` is set to true
 
     Notes
     -----
@@ -737,7 +758,11 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
             # bond rotation (see above)
             break
         if not np.isnan(prev_energy) and curr_energy > prev_energy:
-            # TODO comment
+            # The relaxation algorithm allows the case, that the energy
+            # oscillates between two almost-minimum energies due to its 
+            # discrete nature and so convergence is never reached
+            # To prevent this, the relaxation terminates, if the energy
+            # of the accepted is higher than the one before
             break
         prev_coord = curr_coord
         prev_energy = curr_energy
