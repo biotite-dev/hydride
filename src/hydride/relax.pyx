@@ -345,9 +345,9 @@ class MinimumFinder:
         return np.sum(energies[self._dedup_interaction_mask])
 
 
-    def select_minimum(self, float32[:,:] next_coord, threshold=1e-4):
+    def select_minimum(self, float32[:,:] next_coord):
         """
-        select_minimum(self, next_coord, threshold=1e-2)
+        select_minimum(self, next_coord)
 
         From a given set of updated coordinates select those
         coordinates, that decrease the result of the energy function
@@ -372,14 +372,12 @@ class MinimumFinder:
             The accepted coordinates.
             For each atom group it contains either the respective
             coordinates from `next_coord` or the current coordinates.
+        global_energy : float
+            The global energy of the accepted conformation, according
+            to the underlying energy function.
         any_accepted : bool
             True, if any of the coordinates from `next_coord` were
             accepted, false otherwise.
-        threshold : float, optional
-            For each group the energy difference between `next_coord`
-            and the current coordinates must be greater than this value,
-            to be accepted.
-            This compensates for numerical instabilities.
         """
         cdef int i
 
@@ -394,7 +392,7 @@ class MinimumFinder:
         next_group_energies = self._sum_for_groups(next_energies)
 
         cdef uint8[:] accept_next = (
-            next_group_energies < self._prev_group_energies - threshold
+            next_group_energies < self._prev_group_energies
         ).astype(np.uint8)
         cdef int32[:] groups = self._groups
         # The accepted next coordinates are the new prev coordinates
