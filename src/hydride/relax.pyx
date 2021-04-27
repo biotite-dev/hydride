@@ -198,7 +198,7 @@ class MinimumFinder:
                 f"but {groups.shape[0]} group indicators"
             )
         
-        self._prev_energy = None
+        self._prev_group_energies = None
         self._prev_coord = atoms.coord.copy()
         self._groups = np.asarray(groups)
         self._n_groups = np.max(np.asarray(groups)) + 1
@@ -260,7 +260,10 @@ class MinimumFinder:
         # Trim to correct size
         self._interaction_pairs  = np.asarray(interaction_pairs )[:pair_i]
         self._interaction_groups = np.asarray(interaction_groups)[:pair_i]
-        self._dedup_interaction_mask = None
+        # H-H-Interaction are included twice in the standard interaction
+        # pairs, which would give wrong global energy
+        # -> Deduplicate these pairs 
+        self._dedup_interaction_mask = self._deduplicate_pairs()
 
 
         # Calculate electrostatic parameters for interaction pairs
@@ -338,18 +341,7 @@ class MinimumFinder:
         energies : float
             The energy calculated from the input atom coordinates.
         """
-        if self._dedup_interaction_mask is None:
-            # H-H-Interaction are included twice in the standard
-            # interaction pairs, which would give wrong results
-            # -> Deduplicate these pairs 
-            self._dedup_interaction_mask = self._deduplicate_pairs()
-        
-        diff = coord[self._interaction_pairs[:,0]] - \
-               coord[self._interaction_pairs[:,1]]
-        distances = np.sqrt((diff*diff).sum(axis=-1)) \
-                    .astype(np.float32, copy=False)
-        
-        energies = self._pairwise_energy_function(distances)
+        energies = self._calculate__energies(coord, coord)
         return np.sum(energies[self._dedup_interaction_mask])
 
 
@@ -391,16 +383,18 @@ class MinimumFinder:
         """
         cdef int i
 
-        prev_energies = self._calculate_group_energies(
-            self._prev_coord, self._prev_coord
-        )
-        
-        next_energies = self._calculate_group_energies(
+        if self._prev_group_energies is None:
+            prev_energies = self._calculate_energies(
+                self._prev_coord, self._prev_coord
+            )
+            self._prev_group_energies = self._sum_for_groups(prev_energies)
+        next_energies = self._calculate_energies(
             self._prev_coord, np.asarray(next_coord)
         )
+        next_group_energies = self._sum_for_groups(next_energies)
 
         cdef uint8[:] accept_next = (
-            next_energies < prev_energies - threshold
+            next_group_energies < self._prev_group_energies - threshold
         ).astype(np.uint8)
         cdef int32[:] groups = self._groups
         # The accepted next coordinates are the new prev coordinates
@@ -412,10 +406,20 @@ class MinimumFinder:
                 prev_coord[i, 1] = next_coord[i, 1]
                 prev_coord[i, 2] = next_coord[i, 2]
         
-        return self._prev_coord, np.asarray(accept_next).any()
+        # Prepare the reference energies for the next call of
+        # 'select_minimum()'
+        # Do this after this call, instead of the beginning of the next
+        # call, to be able to return the global energies for this step
+        prev_energies = self._calculate_energies(
+            self._prev_coord, self._prev_coord
+        )
+        self._prev_group_energies = self._sum_for_groups(prev_energies)
+        global_energy = np.sum(prev_energies[self._dedup_interaction_mask])
+        
+        return self._prev_coord, global_energy, np.asarray(accept_next).any()
     
 
-    def _calculate_group_energies(self, prev_coord, next_coord):
+    def _calculate_energies(self, prev_coord, next_coord):
         """
         Calculate the result of the energy function for each group,
         based on the given atom coordinates.
@@ -444,17 +448,20 @@ class MinimumFinder:
         distances = np.sqrt((diff*diff).sum(axis=-1)) \
                     .astype(np.float32, copy=False)
                     
-        cdef float32[:] pair_energies \
-            = self._pairwise_energy_function(distances)
+        return self._pairwise_energy_function(distances)
         
-        cdef float32[:] group_energies = np.zeros(
+        
+    def _sum_for_groups(self, float32[:] values):
+        cdef int i
+        
+        cdef float32[:] group_values = np.zeros(
             self._n_groups, dtype=np.float32
         )
         cdef int32[:] groups = self._interaction_groups
-        for i in range(pair_energies.shape[0]):
-            group_energies[groups[i]] += pair_energies[i]
+        for i in range(values.shape[0]):
+            group_values[groups[i]] += values[i]
         
-        return np.asarray(group_energies)
+        return np.asarray(group_values)
 
 
     def _pairwise_energy_function(self, distances):
@@ -469,8 +476,8 @@ class MinimumFinder:
         
         Returns
         -------
-        energy : float
-            The result of the energy function.
+        energy : ndarray, shape(p,), dtype=np.float32
+            The energy of each interaction pair.
         """
         return (
             # Electrostatic interaction
@@ -511,7 +518,7 @@ class MinimumFinder:
 
 
 def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
-                   return_trajectory=False, partial_charges=None):
+                   return_trajectory=False, return_energies=False, partial_charges=None):
     r"""
     relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10), return_trajectory=False)
 
@@ -528,13 +535,13 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
         Note that :attr:`BondType.ANY` bonds are not considered
         for rotation
     iterations : int, optional
-        The number of relaxation iterations.
+        Limit the number of relaxation iterations.
         The runtime scales approximately linearly with the number of
         iterations.
         By default, the relaxation runs until a local optimum has been
         found, i.e. the hydrogen coordinates do not change anymore.
-        If this parameter is set, the relaxation terminates after the
-        given number of interations.
+        If this parameter is set, the relaxation terminates before this
+        point after the given number of interations.
     angle_increment : float, optional
         The angle in radians by which a bond can be rotated in each
         iteration.
@@ -641,12 +648,14 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
 
     if return_trajectory:
         trajectory = []
+    energies = []
     prev_coord = atoms.coord.copy()
     next_coord = np.zeros(prev_coord.shape, dtype=np.float32)
     # Helper variable for the support-subtracted vector
     center_coord = np.zeros(3, dtype=np.float32)
     # Variables for saving whether any changes were accepted in a step
     cdef bint curr_accepted, prev_accepted = True
+    cdef float curr_energy, prev_energy = np.nan
     cdef float32[:,:] prev_coord_v
     cdef float32[:,:] next_coord_v
     cdef float32[:] center_coord_v = center_coord
@@ -720,7 +729,8 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
 
         
         # Calculate next conformation based on energy
-        curr_coord, curr_accepted = minimum_finder.select_minimum(next_coord)
+        curr_coord, curr_energy, curr_accepted \
+            = minimum_finder.select_minimum(next_coord)
         if not curr_accepted and not prev_accepted:
             # No coordinates were accepted from the current and previous
             # step -> Relaxation converged -> Early termination
@@ -728,18 +738,26 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
             # this would not be sufficient due to the alternating
             # bond rotation (see above)
             break
+        if not np.isnan(prev_energy) and curr_energy > prev_energy:
+            # TODO comment
+            break
         prev_coord = curr_coord
+        prev_energy = curr_energy
         prev_accepted = curr_accepted
         if return_trajectory:
             trajectory.append(prev_coord.copy())
-        print(minimum_finder.calculate_global_energy(prev_coord))
+        energies.append(curr_energy)
         
         n += 1
 
     if return_trajectory:
-        return np.stack(trajectory)
+        return_coord = np.stack(trajectory)
     else:
-        return prev_coord
+        return_coord = prev_coord
+    if return_energies:
+        return return_coord, np.array(energies)
+    else:
+        return return_coord
 
 
 def _find_rotatable_bonds(atoms):

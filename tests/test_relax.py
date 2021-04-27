@@ -108,8 +108,7 @@ def test_hydrogen_bonds():
     mask = np.isin(atoms.res_id, RES_IDS)
     base_num = len(struc.hbond(atoms, mask, mask))
 
-    atoms.coord = hydride.relax_hydrogen(atoms, 1000)
-    raise
+    atoms.coord = hydride.relax_hydrogen(atoms)
     mask = np.isin(atoms.res_id, RES_IDS)
     test_num = len(struc.hbond(atoms, mask, mask))
 
@@ -176,7 +175,7 @@ def test_bond_identification(res_name, ref_bonds):
 
 def test_return_trajectory():
     """
-    Test whether the `return_trajectory` works properly.
+    Test whether the `return_trajectory` parameter works properly.
     It is expected that :func:`relax_hydrogen()` returns multiple
     models.
     """
@@ -186,6 +185,35 @@ def test_return_trajectory():
     )
 
     traj_coord = hydride.relax_hydrogen(atoms, return_trajectory=True)
+
+    assert traj_coord.ndim == 3
+    # Last model in trajectory should be the same result
+    # as running 'relax_hydrogen()' without 'return_trajectory=True'
+    assert np.array_equal(traj_coord[-1], hydride.relax_hydrogen(atoms))
+
+
+def test_return_energies():
+    """
+    Test whether the `return_energies` parameter works properly.
+    It is expected that :func:`relax_hydrogen()` returns an array of
+    energies.
+    """
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+
+    _, energies = hydride.relax_hydrogen(
+        atoms, return_energies=True
+    )
+    assert isinstance(energies, np.ndarray)
+    # Energies should monotonically decrease
+    assert (np.diff(energies) <= 0).all()
+
+    traj_coord, energies = hydride.relax_hydrogen(
+        atoms, return_energies=True, return_trajectory=True
+    )
+    assert len(traj_coord) == len(energies)
 
     assert traj_coord.ndim == 3
     # Last model in trajectory should be the same result
@@ -235,7 +263,7 @@ def test_limited_iterations():
     That is only true, if the number of iterations is low enough,
     so that the relaxation does not terminate before.
     """
-    ITERATIONS = 10
+    ITERATIONS = 8
     
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
     atoms = mmtf.get_structure(
