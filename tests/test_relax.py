@@ -108,7 +108,8 @@ def test_hydrogen_bonds():
     mask = np.isin(atoms.res_id, RES_IDS)
     base_num = len(struc.hbond(atoms, mask, mask))
 
-    atoms.coord = hydride.relax_hydrogen(atoms)
+    atoms.coord = hydride.relax_hydrogen(atoms, 1000)
+    raise
     mask = np.isin(atoms.res_id, RES_IDS)
     test_num = len(struc.hbond(atoms, mask, mask))
 

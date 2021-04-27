@@ -226,6 +226,21 @@ def test_limited_iterations(input_file, output_file):
     assert_hydrogen_addition(output_file)
 
 
+def test_angle_increment(input_file, output_file):
+    """
+    Test CLI run with ``--angle_increment`` parameter.
+    """
+    run_cli([
+        "-v",
+        "-i", input_file,
+        "-o", output_file,
+        "-c", str(PH),
+        "--angle-increment", str(5)
+    ])
+
+    assert_hydrogen_addition(output_file)
+
+
 def test_invalid_iteratons(input_file, dummy_output_file):
     with pytest.raises(SystemExit) as wrapped_exception:
         run_cli([

@@ -84,6 +84,14 @@ def main(args=None):
              "has been reached."
     )
     parser.add_argument(
+        "--angle-increment", "-a", type=float, metavar="NUMBER", default=10.0,
+        help="The angle in degrees that a freely rotatable bond is rotated "
+             "in each relaxation step."
+             "Lower values increase the accuracy of hydrogen positioning, "
+             "but increase the required number of steps until an optimum "
+             "is found."
+    )
+    parser.add_argument(
         "--fragments", "-f", metavar="FILE", action="append",
         help="Additional structure file to containing fragments for the "
              "fragment library. "
@@ -204,7 +212,9 @@ def run(args):
     if not args.no_relax:
         if args.iterations is not None and args.iterations < 0:
             raise UserInputError("The number of iterations must be positive")
-        model.coord = relax_hydrogen(model, args.iterations)
+        model.coord = relax_hydrogen(
+            model, args.iterations, np.deg2rad(args.angle_increment)
+        )
     
     try:
         write_structure(args.outfile, args.outformat, model)

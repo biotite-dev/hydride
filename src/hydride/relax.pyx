@@ -198,6 +198,7 @@ class MinimumFinder:
                 f"but {groups.shape[0]} group indicators"
             )
         
+        self._prev_energy = None
         self._prev_coord = atoms.coord.copy()
         self._groups = np.asarray(groups)
         self._n_groups = np.max(np.asarray(groups)) + 1
@@ -509,10 +510,10 @@ class MinimumFinder:
 
 
 
-def relax_hydrogen(atoms, iterations=None, angle_increment=0.02*2*np.pi,
+def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
                    return_trajectory=False, partial_charges=None):
     r"""
-    relax_hydrogen(atoms, iterations=None, angle_increment=0.02*2*np.pi, return_trajectory=False)
+    relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10), return_trajectory=False)
 
     Optimize the hydrogen atom positions by rotating about terminal
     bonds.
