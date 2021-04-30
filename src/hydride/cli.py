@@ -64,7 +64,7 @@ def main(args=None):
 
     parser.add_argument(
         "--verbose", "-v", action="store_true",
-        help="Verbose logging."
+        help="Verbose display of errors."
     )
 
     parser.add_argument(
@@ -95,9 +95,9 @@ def main(args=None):
         "--fragments", "-f", metavar="FILE", action="append",
         help="Additional structure file to containing fragments for the "
              "fragment library. "
-             "This can be used supply fragments for exotic molecules, "
-             "if the standard fragment library does not contain such "
-             "fragments, yet."
+             "This can be used supply fragments for molecules with uncommon "
+             "groups, if the standard fragment library does not contain such "
+             "fragments, yet. "
              "May be supplied multiple times."
     )
     parser.add_argument(
@@ -257,7 +257,6 @@ def read_structure(path, format, model_number):
             pdb_file, model=model_number, extra_fields=["charge"]
         )
         model.bonds = struc.connect_via_residue_names(model)
-        # TODO also connect via distances for unknown molecules
     elif format == "pdbx":
         pdbx_file = pdbx.PDBxFile.read(path)
         model_count = pdbx.get_model_count(pdbx_file)
@@ -270,7 +269,6 @@ def read_structure(path, format, model_number):
             pdbx_file, model=model_number, extra_fields=["charge"]
         )
         model.bonds = struc.connect_via_residue_names(model)
-        # TODO also connect via distances for unknown molecules
     elif format == "mmtf":
         if path == sys.stdin:
             # Special handling for binary input
@@ -291,7 +289,6 @@ def read_structure(path, format, model_number):
             # No bonds were stored in MMTF file
             # -> Predict bonds 
             model.bonds = struc.connect_via_residue_names(model)
-            # TODO also connect via distances for unknown molecules
     else:
         raise UserInputError(f"Unknown file format '{format}'")
     
