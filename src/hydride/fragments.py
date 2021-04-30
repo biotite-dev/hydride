@@ -299,6 +299,12 @@ def _fragment(atoms, mask=None):
         heavy_mask = (elements[bond_indices] != "H")
         heavy_indices = bond_indices[heavy_mask]
         heavy_types = bond_types[heavy_mask]
+        if (heavy_types == BondType.ANY).any():
+            warnings.warn(
+                f"Atom '{atoms.atom_name[i]}' in '{atoms.res_name[i]}' has an "
+                f"undefined bond type and is ignored"
+            )
+            continue
 
         # Order the bonded atoms by their bond types
         # to remove atom order dependency in the matching step 

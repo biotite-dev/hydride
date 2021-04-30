@@ -246,3 +246,43 @@ def test_partial_double_bonds(res_name, nitrogen_index):
         # -> there is rotational freedom
         # -> invalid test case
         raise ValueError("Invalid test case")
+
+
+def test_undefined_bond_type():
+    """
+    Check if the :class:`FragmentLibrary` raises a warning, if atoms
+    are bonded with :attr:`BondType.ANY`, and if the corresponding
+    fragments are ignored.
+    """
+    molecule = info.residue("BNZ")
+    # Retain the bonds, but remove the bond type
+    molecule.bonds = struc.BondList(
+        molecule.array_length(),
+        # Remove bond type from existing bonds
+        molecule.bonds.as_array()[:,:2]
+    )
+
+    # Test handing of 'BondType.ANY' in 'add_molecule()'
+    library = hydride.FragmentLibrary()
+    with pytest.warns(UserWarning) as record:
+        library.add_molecule(molecule)
+    assert any([
+        True if "undefined bond type" in warning.message.args[0] else False
+        for warning in record
+    ])
+    # No fragment should be added
+    assert len(library._frag_dict) == 0
+
+    # Test handing of 'BondType.ANY' in 'calculate_hydrogen_coord()'
+    heavy_atoms = molecule[molecule.element != "H"]
+    library = hydride.FragmentLibrary.standard_library()
+    with pytest.warns(UserWarning) as record:
+        hydrogen_coord = library.calculate_hydrogen_coord(heavy_atoms)
+    assert any([
+        True if "undefined bond type" in warning.message.args[0] else False
+        for warning in record
+    ])
+    assert len(hydrogen_coord) == heavy_atoms.array_length()
+    for coord in hydrogen_coord:
+        # For each heavy atom there should be no added hydrogen
+        assert len(coord) == 0
