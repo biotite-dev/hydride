@@ -583,7 +583,7 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
 
     Notes
     -----
-    The potential consists of the follwong terms:
+    The potential consists of the following terms:
     
     .. math::
 
@@ -773,7 +773,7 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
         energies.append(curr_energy)
         
         n += 1
-
+    
     if return_trajectory:
         return_coord = np.stack(trajectory)
     else:
