@@ -14,6 +14,7 @@ import biotite.structure as struc
 import biotite.structure.io as strucio
 import biotite.structure.info as info
 import biotite.structure.io.mmtf as mmtf
+import biotite.structure.io.mol as mol
 import hydride
 from hydride.cli import main as run_cli
 from .util import data_dir
@@ -34,10 +35,10 @@ def input_file(request):
         "w", suffix=f".{request.param}", delete=False
     )
     strucio.save_structure(temp_file.name, model)
+    temp_file.close()
 
     yield temp_file.name
 
-    temp_file.close()
     os.remove(temp_file.name)
 
 
@@ -46,10 +47,10 @@ def output_file(request):
     temp_file = tempfile.NamedTemporaryFile(
         "r", suffix=f".{request.param}", delete=False
     )
+    temp_file.close()
 
     yield temp_file.name
 
-    temp_file.close()
     os.remove(temp_file.name)
 
 
@@ -97,6 +98,41 @@ def test_simple(input_file, output_file):
     ])
 
     assert_hydrogen_addition(output_file)
+
+
+def test_molfile():
+    """
+    Test usage of MOL/SDF files for input and output.
+    """
+    mol_file = mol.MOLFile.read(join(data_dir(), "TYR.sdf"))
+    ref_model = mol_file.get_structure()
+    model = ref_model[ref_model.element != "H"]
+
+    input_file = tempfile.NamedTemporaryFile(
+        "w", suffix=".mol", delete=False
+    )
+    strucio.save_structure(input_file.name, model)
+    input_file.close()
+
+    output_file = tempfile.NamedTemporaryFile(
+        "r", suffix=".mol", delete=False
+    )
+    output_file.close()
+
+    run_cli([
+        "-v",
+        "-i", input_file.name,
+        "-o", output_file.name,
+    ])
+
+    mol_file = mol.MOLFile.read(output_file.name)
+    test_model = mol_file.get_structure()
+
+    os.remove(input_file.name)
+    os.remove(output_file.name)
+
+    assert test_model.array_length() == ref_model.array_length()
+    assert test_model.element.tolist() == ref_model.element.tolist()
 
 
 def test_std_in_out(input_file, output_file):

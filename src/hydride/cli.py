@@ -14,6 +14,7 @@ import biotite.structure as struc
 import biotite.structure.io.pdb as pdb
 import biotite.structure.io.pdbx as pdbx
 import biotite.structure.io.mmtf as mmtf
+import biotite.structure.io.mol as mol
 from .add import add_hydrogen
 from. charge import estimate_amino_acid_charges
 from .fragments import FragmentLibrary
@@ -48,14 +49,16 @@ def main(args=None):
              "Any existing hydrogen atoms will be removed the model."
     )
     parser.add_argument(
-        "--informat", "-I", choices=["pdb", "pdbx", "cif", "mmtf"],
+        "--informat", "-I",
+        choices=["pdb", "pdbx", "cif", "mmtf", "sdf", "mol"],
         help="The file format of the input file. "
              "Must be specified if input file is read from STDIN. "
              "If omitted, the file format is guessed from the suffix "
              "of the file."
     )
     parser.add_argument(
-        "--outformat", "-O", choices=["pdb", "pdbx", "cif", "mmtf"],
+        "--outformat", "-O",
+        choices=["pdb", "pdbx", "cif", "mmtf", "mol"],
         help="The file format of the output file. "
              "Must be specified if output file is written to STDOUT."
              "If omitted, the file format is guessed from the suffix "
@@ -101,7 +104,8 @@ def main(args=None):
              "May be supplied multiple times."
     )
     parser.add_argument(
-        "--fragformat", "-F", choices=["pdb", "pdbx", "cif", "mmtf"],
+        "--fragformat", "-F",
+        choices=["pdb", "pdbx", "cif", "mmtf", "sdf", "mol"],
         help="The file format of the additional structure files. "
              "If omitted, the file format is guessed from the suffix "
              "of the file."
@@ -236,8 +240,6 @@ def read_structure(path, format, model_number):
                 "if the input file is read from STDIN"
             )
         format = guess_format(path)
-    elif format == "cif":
-        format = "pdbx"
     
     if model_number < 1:
         raise UserInputError("Model number must be positive")
@@ -257,7 +259,7 @@ def read_structure(path, format, model_number):
             pdb_file, model=model_number, extra_fields=["charge"]
         )
         model.bonds = struc.connect_via_residue_names(model)
-    elif format == "pdbx":
+    elif format == "pdbx" or format == "cif":
         pdbx_file = pdbx.PDBxFile.read(path)
         model_count = pdbx.get_model_count(pdbx_file)
         if model_number > model_count:
@@ -289,6 +291,15 @@ def read_structure(path, format, model_number):
             # No bonds were stored in MMTF file
             # -> Predict bonds 
             model.bonds = struc.connect_via_residue_names(model)
+    elif format == "mol" or format == "sdf":
+        mol_file = mol.MOLFile.read(path)
+        if model_number > 1:
+            raise UserInputError(
+                f"Model number {model_number} is out of range "
+                f"for the input structure with 1 models"
+            )
+        model = mol_file.get_structure()
+        model.res_name[:] = mol_file.lines[0].strip()
     else:
         raise UserInputError(f"Unknown file format '{format}'")
     
@@ -303,8 +314,6 @@ def write_structure(path, format, model):
                 "if the output written to STDOUT"
             )
         format = guess_format(path)
-    elif format == "cif":
-        format = "pdbx"
     
     if path is None:
         path = sys.stdout
@@ -313,7 +322,7 @@ def write_structure(path, format, model):
         pdb_file = pdb.PDBFile()
         pdb.set_structure(pdb_file, model)
         pdb_file.write(path)
-    elif format == "pdbx":
+    elif format == "pdbx" or format == "cif":
         pdbx_file = pdbx.PDBxFile()
         pdbx.set_structure(pdbx_file, model, data_block="STRUCTURE")
         pdbx_file.write(path)
@@ -325,6 +334,11 @@ def write_structure(path, format, model):
             mmtf_file.write(sys.stdout.buffer)
         else:
             mmtf_file.write(path)
+    elif format == "mol" or format == "sdf":
+        mol_file = mol.MOLFile()
+        mol_file.set_structure(model)
+        mol_file.set_header(model.res_name[0])
+        mol_file.write(path)
     else:
         raise UserInputError(f"Unknown file format '{format}'")
 
@@ -337,5 +351,7 @@ def guess_format(path):
         return "pdbx"
     elif suffix in [".mmtf"]:
         return "mmtf"
+    elif suffix in [".mol", ".sdf"]:
+        return "mol"
     else:
         raise UserInputError(f"Unknown file extension '{suffix}'")

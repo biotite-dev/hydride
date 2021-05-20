@@ -76,7 +76,8 @@ The most simple invocation of the *Hydride* command line program is
 ``output_structure.pdb``.
 If hydrogen atoms remain in the input structure, these are automatically
 removed.
-*Hydride* supports the *PDB*, *PDBx/mmCIF* and *mmtf* format.
+*Hydride* supports the *PDB*, *PDBx/mmCIF*, *MMTF*, *MOL* and *SDF*
+format.
 
 If no input structure file path is given, the file is read from *STDIN*.
 In this case the the format cannot be inferred from the file extension, so the

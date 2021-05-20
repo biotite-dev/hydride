@@ -22,8 +22,8 @@ structure file or by editing the ``charges`` annotation of the input
 :class:`AtomArray` in the Python API.
 
 
-A fragment is missing for an atom and no hydrogen atom can be assinged to it
-----------------------------------------------------------------------------
+A fragment is missing for a heavy atom and no hydrogen atom can be assigned to it
+---------------------------------------------------------------------------------
 
 Although, most molecules are covered by the fragment library, some uncommon
 groups within a molecule may be not.
@@ -35,8 +35,9 @@ Such a template structure file for a molecule can be e.g. downloaded from a
 ligand database.
 In the command line interface the template structure file is provided via
 the ``--fragments``/``-f`` parameter.
-Note that only the *MMTF* format is currently the only reasonable format,
-since the bond information can only be read from this format.
+Note that only the *MMTF*, *MOL* and *SDF* formats are currently the only
+reasonable formats, since the bond information can only be read from these
+formats.
 In the Python API the template can be added to the standard fragment library.
 
 .. code-block:: python

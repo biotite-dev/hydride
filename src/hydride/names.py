@@ -110,6 +110,12 @@ class AtomNameLibrary:
 
         
         else:
+            if len(heavy_atom_name) == 0:
+                # Atom array has not atom names
+                # (loaded e.g. from MOL file)
+                # -> Also no atom names for hydrogen atoms
+                while True:
+                    yield ""
             if heavy_atom_name[-1] in string.digits:
                 # Atom name ends with number
                 # -> assume ligand atom naming
