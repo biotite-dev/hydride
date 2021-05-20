@@ -6,16 +6,14 @@ pyximport.install(
     language_level=3
 )
 
-import time
 from os.path import join
 import numpy as np
-from matplotlib.colors import to_rgb
-from matplotlib.pyplot import get_cmap
 import biotite.structure as struc
 import biotite.structure.io.mmtf as mmtf
 import biotite.database.rcsb as rcsb
 import hydride
 import ammolite
+from util import COLORS
 
 
 mmtf_file = mmtf.MMTFFile.read(rcsb.fetch("1bna", "mmtf"))
@@ -34,8 +32,7 @@ all_atoms = all_atoms[np.isin(all_atoms.res_id, (3, 22))]
 bonds = struc.hbond(all_atoms)
 
 
-#ammolite.launch_interactive_pymol()
-#ammolite.cmd.bg_color("white")
+ammolite.cmd.bg_color("white")
 ammolite.cmd.set("valence", 0)
 ammolite.cmd.set("dash_gap", 0.3)
 ammolite.cmd.set("dash_width", 2.0)
@@ -54,26 +51,22 @@ pymol_all.orient()
 pymol_all.zoom(buffer=1.0)
 ammolite.cmd.rotate("z", 90)
 
-cmap = get_cmap("tab10")
 for pymol_object, atoms in zip(
     (pymol_heavy, pymol_all), (heavy_atoms, all_atoms)
-):  
-    pymol_object.color("white",         atoms.element == "H")
-    pymol_object.color(to_rgb(cmap(0)), atoms.element == "N")
-    pymol_object.color(to_rgb(cmap(7)), atoms.element == "C")
-    pymol_object.color(to_rgb(cmap(3)), atoms.element == "O")
-    pymol_object.color(to_rgb(cmap(1)), atoms.element == "P")
+):
+    for element in ("H", "C", "N", "O", "P"):
+        pymol_object.color(COLORS[element], atoms.element == element)
 
 pymol_all.disable()
 pymol_heavy.enable()
-ammolite.cmd.png("intro_heavy.png", 400, 800)
+ammolite.cmd.png("cover_heavy.png", 400, 800)
 
 pymol_heavy.disable()
 pymol_all.enable()
 for i, (_, atom_i, atom_j) in enumerate(bonds):
-    color = to_rgb(cmap(0)) if all_atoms.element[atom_j] == "N"\
-            else to_rgb(cmap(3))
+    color = COLORS["N"] if all_atoms.element[atom_j] == "N"\
+            else COLORS["O"]
     pymol_all.distance(str(i), atom_i, atom_j, show_label=False)
     ammolite.cmd.set_color(f"bond_color_{i}", list(color))
     ammolite.cmd.color(f"bond_color_{i}", str(i))
-ammolite.cmd.png("intro_hydrogenated.png", 400, 800)
+ammolite.cmd.png("cover_hydrogenated.png", 400, 800)
