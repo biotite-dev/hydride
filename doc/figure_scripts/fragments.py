@@ -28,18 +28,15 @@ def load_and_orient(mol_name):
     molecule.coord -= struc.centroid(molecule)
     return molecule
 
-benzene = load_and_orient("benzene")
-propane  = load_and_orient("propane" )
-toluene = load_and_orient("toluene")
-benzene_heavy, propane_heavy, toluene_heavy = [
-    atoms[atoms.element != "H"] for atoms in (benzene, propane, toluene)
+benzene  = load_and_orient("benzene")
+butylene = load_and_orient("isobutylene")
+toluene  = load_and_orient("toluene")
+benzene_heavy, butylene_heavy, toluene_heavy = [
+    atoms[atoms.element != "H"] for atoms in (benzene, butylene, toluene)
 ]
 
 
-#ammolite.launch_interactive_pymol()
-
 ammolite.cmd.bg_color("white")
-ammolite.cmd.set("valence", 0)
 ammolite.cmd.set("dash_gap", 0.3)
 ammolite.cmd.set("dash_width", 2.0)
 ammolite.cmd.set("ray_trace_mode", 3)
@@ -72,11 +69,11 @@ pymol_benzene.color(COLORS["N"], benzene.element != "H")
 ammolite.cmd.png("benzene.png", *PNG_SIZE)
 ammolite.cmd.disable("benzene")
 
-pymol_propane = ammolite.PyMOLObject.from_structure(propane, "propane")
+pymol_butylene = ammolite.PyMOLObject.from_structure(butylene, "butylene")
 CENTER.zoom(buffer=ZOOM)
-pymol_propane.color(COLORS["N"], propane.element != "H")
-ammolite.cmd.png("propane.png", *PNG_SIZE)
-ammolite.cmd.disable("propane")
+pymol_butylene.color(COLORS["N"], butylene.element != "H")
+ammolite.cmd.png("butylene.png", *PNG_SIZE)
+ammolite.cmd.disable("butylene")
 
 
 def visualize_fragments(molecule, mol_name, color):
@@ -101,4 +98,4 @@ def visualize_fragments(molecule, mol_name, color):
 
 visualize_fragments(toluene_heavy, "toluene", COLORS["O"])
 visualize_fragments(benzene,       "benzene", COLORS["N"])
-visualize_fragments(propane,        "propane",  COLORS["N"])
+visualize_fragments(butylene,        "butylene",  COLORS["N"])
