@@ -1,8 +1,10 @@
 # Ignore the distribution directories
 dist/
 build/
-doc/_build/
 *.egg-info/
+
+# Ignore fragment and atom name library
+src/hydride/*.pickle
 
 # Ignore folder created by mypy
 .mypy_cache/
@@ -19,6 +21,11 @@ htmlcov
 *.pyo
 *.py{}
 *.py-e
+
+# Ignore files created via Cython
+*.c
+*.so
+*.pyd
 
 # Ignore potential directory created during install
 biotite.egg-info

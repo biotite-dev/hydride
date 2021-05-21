@@ -4,5 +4,6 @@
 
 from os.path import join, dirname, realpath
 
-def struc_for_test_dir(file):
-    return join(dirname(realpath(__file__)), "data", file)
+
+def data_dir():
+    return join(dirname(realpath(__file__)), "data")

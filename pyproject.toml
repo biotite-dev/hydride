@@ -3,4 +3,8 @@
 requires = [
     "setuptools >= 0.30",
     "wheel >= 0.30",
+    "biotite >= 0.28",
+    "numpy == 1.19",
+    "msgpack >= 0.5.6",
+    "cython >= 0.29"
 ]
