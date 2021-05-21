@@ -32,7 +32,7 @@ If it is omitted, the returned molecular model is not energy minimized, so
 some (non-covalent) hydrogen bonds or *Van-der-Waals* interactions might be
 missing.
 Nevertheless, this molecular model is still reasonable with respect to
-bond lengths and angles, but some atom clashes might appear.
+bond lengths and angles, but some steric clashes might appear.
 
 
 Hydrogen addition
@@ -124,7 +124,61 @@ hydrogen positions are adopted by the target molecule.
 Hydrogen relaxation
 -------------------
 
-Lorem ipsum
+After initial hydrogen atom placement the position of hydrogen connected to
+terminal heavy atoms can be further optimized, i.e. the energy minimized,
+in order to reduce steric clashes and form hydrogen bonds for example.
+
+*Hydride* uses an energy function based on non-bonded interaction terms
+between all pairs of rotatable hydrogen atoms (:math:`\sum^\text{H}`)
+with all other atoms (:math:`\sum^\text{All}`).
+All other interaction pairs do not need to be considered, as their distances
+to each other are not altered during the course of relaxation.
+The interaction terms comprise an electrostatic :math:`V_\text{el}` and a
+*Lennart-Jones* :math:`V_\text{LJ}` term:
+
+.. math::
+
+   V = V_\text{el} + V_\text{nb}
+   
+   V_\text{el} = 332.067
+   \sum_i^\text{H}  \sum_j^\text{All}
+   \frac{q_i q_j}{D_{ij}}
+
+   E_\text{nb} = \epsilon_{ij}
+   \sum_i^\text{H}  \sum_j^\text{All}
+   \left(
+       \frac{r_{ij}^{12}}{D_{ij}^{12}} - 2\frac{r_{ij}^6}{D_{ij}^6}
+   \right)
+
+:math:`D_{ij}` is the distance between the atoms :math:`i` and :math:`j`.
+:math:`\epsilon_{ij}` and :math:`r_{ij}` are the well depth and optimal
+distance between these atoms, respectively, and are calculated as
+
+.. math::
+
+   \epsilon_{ij} = \sqrt{ \epsilon_i  \epsilon_j},
+   
+   r_{ij} = \frac{r_i + r_j}{2}.
+
+:math:`\epsilon` and :math:`r` are taken from the
+*Universal Force Field* [3]_.
+To obtain more accurate distances for hydrogen bonds, :math:`r` is multiplied
+with :math:`0.79` for potential hydrogen bond acceptor-donor pairs [4]_.
+By default, the charges :math:`q` are calculated via the PEOE method [5]_
+implemented in :func:`biotite.structure.partial_charges()`.
+
+|
+
+Based on this energy function, the applicable hydrogen atoms are iteratively
+rotated about the bond of the terminal heavy atom.
+However, if the terminal heavy atom is bonded via a (partial) double bond to
+the rest of the molecule free rotation is prohibited.
+For `imine <https://en.wikipedia.org/wiki/Imine>`_ groups, as they appear e.g.
+in arginine, two hydrogen conformations are still possible though.
+Due to these discrete values a continuous optimizer cannot be employed.
+Hence, *Hydride's* uses a *hill climbing* algorithm:
+
+Some sentences about the optimizer.
 
 
 References
@@ -138,3 +192,17 @@ References
    "A discussion of the solution for the best rotation to relate
    two sets of vectors."
    Acta Cryst, 34, 827-828 (1978).
+
+.. [3] AK Rappé, CJ Casewit, KS Colwell, WA Goddard III and WM Skiff,
+   "UFF, a full periodic table force field for molecular mechanics
+   and molecular dynamics simulations."
+   J Am Chem Soc, 114, 10024-10035 (1992).
+
+.. [4] T Ogawa and T Nakano,
+   "The Extended Universal Force Field (XUFF): Theory and applications."
+   CBIJ, 10, 111-133 (2010)
+
+.. [5] J Gasteiger and M Marsili,
+   "Iterative partial equalization of orbital electronegativity - a
+   rapid access to atomic charges"
+   Tetrahedron, 36, 3219 - 3288 (1980).
