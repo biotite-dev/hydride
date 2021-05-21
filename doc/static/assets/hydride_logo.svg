@@ -8,16 +8,16 @@
    xmlns:xlink="http://www.w3.org/1999/xlink"
    xmlns:sodipodi="http://sodipodi.sourceforge.net/DTD/sodipodi-0.dtd"
    xmlns:inkscape="http://www.inkscape.org/namespaces/inkscape"
-   height="400"
+   height="500"
    version="1.1"
-   viewBox="0 0 300.00001 300"
+   viewBox="0 0 300.00001 375"
    width="400"
    id="svg170"
    sodipodi:docname="hydride_logo.svg"
    inkscape:version="1.0.2 (394de47547, 2021-03-26)"
-   inkscape:export-filename="/home/kunzmann/data/coding/hydride/doc/static/assets/icon_logo.png"
-   inkscape:export-xdpi="120"
-   inkscape:export-ydpi="120">
+   inkscape:export-filename="/home/kunzmann/data/coding/hydride/doc/static/assets/hydride_logo.png"
+   inkscape:export-xdpi="48"
+   inkscape:export-ydpi="48">
   <sodipodi:namedview
      pagecolor="#ffffff"
      bordercolor="#666666"
@@ -31,15 +31,17 @@
      inkscape:window-height="1025"
      id="namedview172"
      showgrid="false"
-     inkscape:zoom="1.4124865"
-     inkscape:cx="312.70347"
-     inkscape:cy="260.7871"
+     inkscape:zoom="0.99877878"
+     inkscape:cx="13.019142"
+     inkscape:cy="242.83276"
      inkscape:window-x="67"
      inkscape:window-y="27"
      inkscape:window-maximized="1"
      inkscape:current-layer="g933"
      units="px"
-     inkscape:document-rotation="0" />
+     inkscape:document-rotation="0"
+     showguides="true"
+     inkscape:guide-bbox="true" />
   <metadata
      id="metadata2">
     <rdf:RDF>
@@ -75,126 +77,126 @@
     <g
        id="Line3DCollection_1"
        transform="translate(45.591268,29.444127)"
-       style="stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none">
+       style="stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none">
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="M 399.69738,211.2615 388.56874,173.52214"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path14" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 399.69738,211.2615 17.31823,-7.76936"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path16" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="M 399.69738,211.2615 373.5539,223.44971"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path18" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="M 388.56874,173.52214 425.94059,152.0593"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path20" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="M 388.56874,173.52214 364.11725,146.15196"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path22" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 388.56874,173.52214 -17.95929,7.09894"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path24" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 425.94059,152.0593 31.10449,3.17909"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path26" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="M 425.94059,152.0593 424.7912,129.99736"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path28" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 364.11725,146.15196 -38.58972,21.89019"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path30" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 364.11725,146.15196 18.38091,-7.86806"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path32" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 364.11725,146.15196 -8.02267,-27.64061"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path34" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 325.52753,168.04215 -0.68178,24.55803"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path36" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 325.52753,168.04215 -34.557,-4.00738"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path38" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 324.84575,192.60018 -36.49826,20.93421"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path40" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 324.84575,192.60018 28.1259,3.31752"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path42" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="M 290.97053,164.03477 255.3932,184.17204"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path44" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 290.97053,164.03477 1.06004,-18.28845"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path46" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 288.34749,213.53439 -35.06835,-4.52058"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path48" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 288.34749,213.53439 -1.10376,20.32037"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path50" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 255.3932,184.17204 -2.11406,24.84177"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path52" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 255.3932,184.17204 -26.14709,-3.13607"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path54" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 253.27914,209.01381 -36.14852,20.48637"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path56" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="M 217.13062,229.50018 200.39916,211.1546"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path58" />
       <path
          clip-path="url(#pfeaf2a02fc)"
          d="m 424.7912,129.99736 23.33477,-13.2687"
-         style="fill:none;stroke:#000000;stroke-width:7.50000012;stroke-miterlimit:4;stroke-dasharray:none"
+         style="fill:none;stroke:#000000;stroke-width:7.5;stroke-miterlimit:4;stroke-dasharray:none"
          id="path60" />
     </g>
     <g
@@ -390,7 +392,7 @@
       </g>
       <g
          id="g933"
-         style="stroke-width:0.99975002;stroke-miterlimit:4;stroke-dasharray:none;fill:#ff2a17;fill-opacity:1">
+         style="fill:#ff2a17;fill-opacity:1;stroke-width:0.99975;stroke-miterlimit:4;stroke-dasharray:none">
         <g
            clip-path="url(#pfeaf2a02fc)"
            id="g120"
@@ -544,6 +546,39 @@
              id="use158"
              width="100%"
              height="100%" />
+        </g>
+        <g
+           aria-label="hydride"
+           id="text916"
+           style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;line-height:1.25;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round">
+          <path
+             d="m 209.78774,362.64002 q -0.4,0.16 -1.2,0.32 -0.8,0.24 -1.76,0.24 -3.44,0 -3.44,-2.88 v -49.36 q 0.4,-0.16 1.2,-0.32 0.88,-0.24 1.84,-0.24 3.36,0 3.36,2.88 v 14.4 q 1.92,-1.12 4.48,-2 2.64,-0.88 5.92,-0.88 3.36,0 6.08,0.88 2.8,0.88 4.8,2.72 2,1.76 3.12,4.56 1.12,2.72 1.12,6.4 v 23.28 q -0.4,0.16 -1.28,0.32 -0.8,0.24 -1.68,0.24 -3.44,0 -3.44,-2.88 v -20.8 q 0,-4.8 -2.64,-7.12 -2.64,-2.32 -6.96,-2.32 -2.8,0 -5.28,1.04 -2.4,0.96 -4.24,2.4 v 29.12 z"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round"
+             id="path918" />
+          <path
+             d="m 253.71649,354.56002 q -1.04,-1.92 -2.4,-4.88 -1.36,-2.96 -2.88,-6.64 -1.44,-3.68 -2.96,-7.76 -1.52,-4.16 -2.88,-8.4 0.56,-0.8 1.44,-1.28 0.96,-0.48 2,-0.48 1.36,0 2.16,0.72 0.88,0.72 1.52,2.4 2.4,6.8 4.96,13.36 2.64,6.56 5.92,13.76 h 0.32 q 1.28,-2.48 2.64,-6 1.36,-3.6 2.64,-7.6 1.36,-4 2.48,-8.08 1.2,-4.16 2.08,-7.92 0.56,-0.24 1.2,-0.4 0.64,-0.24 1.52,-0.24 1.36,0 2.24,0.72 0.88,0.64 0.88,2 0,1.6 -1.12,5.84 -1.12,4.24 -2.96,9.52 -1.76,5.28 -4.08,10.88 -2.32,5.52 -4.72,9.84 -3.76,6.8 -6.8,10.4 -2.96,3.68 -5.52,3.68 -1.84,0 -2.88,-0.96 -0.96,-0.96 -1.2,-2.24 1.28,-1.12 2.88,-2.88 1.6,-1.76 3.2,-3.84 1.6,-2 3.04,-4.16 1.44,-2.16 2.4,-4.16 -1.36,-0.4 -2.56,-1.36 -1.12,-1.04 -2.56,-3.84 z"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round"
+             id="path920" />
+          <path
+             d="m 316.23399,356.72002 q 0,1.6 -0.72,2.48 -0.64,0.88 -2.08,1.76 -1.6,1.04 -4.56,1.92 -2.96,0.96 -6.8,0.96 -4.32,0 -7.92,-1.12 -3.6,-1.12 -6.24,-3.44 -2.56,-2.4 -4,-6 -1.36,-3.68 -1.36,-8.8 0,-5.2 1.44,-8.88 1.44,-3.76 3.84,-6.16 2.48,-2.4 5.76,-3.52 3.36,-1.12 7.12,-1.12 2.56,0 4.96,0.64 2.4,0.64 4.16,1.6 v -16.08 q 0.4,-0.16 1.2,-0.32 0.88,-0.24 1.76,-0.24 3.44,0 3.44,2.88 z m -6.4,-23.92 q -1.6,-1.12 -3.68,-1.92 -2.08,-0.8 -4.8,-0.8 -2.48,0 -4.72,0.8 -2.16,0.72 -3.84,2.48 -1.68,1.68 -2.72,4.48 -0.96,2.8 -0.96,6.8 0,7.36 3.52,10.64 3.52,3.28 9.36,3.28 2.8,0 4.56,-0.56 1.84,-0.64 3.28,-1.52 z"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round"
+             id="path922" />
+          <path
+             d="m 334.78399,362.64002 q -0.4,0.16 -1.2,0.32 -0.8,0.24 -1.76,0.24 -3.44,0 -3.44,-2.88 v -27.12 q 0,-1.84 0.64,-2.88 0.72,-1.12 2.32,-2.16 2.08,-1.36 5.6,-2.32 3.6,-1.04 8.08,-1.04 6.4,0 6.4,3.2 0,0.8 -0.24,1.52 -0.24,0.64 -0.64,1.12 -0.8,-0.16 -2.08,-0.32 -1.28,-0.16 -2.56,-0.16 -3.68,0 -6.48,0.8 -2.8,0.72 -4.64,1.76 z"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round"
+             id="path924" />
+          <path
+             d="m 365.80899,362.64002 q -0.4,0.16 -1.2,0.32 -0.8,0.24 -1.76,0.24 -3.44,0 -3.44,-2.88 v -34.32 q 0.4,-0.16 1.2,-0.32 0.88,-0.24 1.84,-0.24 3.36,0 3.36,2.96 z m -7.36,-48.48 q 0,-1.68 1.12,-2.8 1.2,-1.2 3.04,-1.2 1.84,0 2.96,1.2 1.12,1.12 1.12,2.8 0,1.68 -1.12,2.88 -1.12,1.12 -2.96,1.12 -1.84,0 -3.04,-1.12 -1.12,-1.2 -1.12,-2.88 z"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round"
+             id="path926" />
+          <path
+             d="m 409.82774,356.72002 q 0,1.6 -0.72,2.48 -0.64,0.88 -2.08,1.76 -1.6,1.04 -4.56,1.92 -2.96,0.96 -6.8,0.96 -4.32,0 -7.92,-1.12 -3.6,-1.12 -6.24,-3.44 -2.56,-2.4 -4,-6 -1.36,-3.68 -1.36,-8.8 0,-5.2 1.44,-8.88 1.44,-3.76 3.84,-6.16 2.48,-2.4 5.76,-3.52 3.36,-1.12 7.12,-1.12 2.56,0 4.96,0.64 2.4,0.64 4.16,1.6 v -16.08 q 0.4,-0.16 1.2,-0.32 0.88,-0.24 1.76,-0.24 3.44,0 3.44,2.88 z m -6.4,-23.92 q -1.6,-1.12 -3.68,-1.92 -2.08,-0.8 -4.8,-0.8 -2.48,0 -4.72,0.8 -2.16,0.72 -3.84,2.48 -1.68,1.68 -2.72,4.48 -0.96,2.8 -0.96,6.8 0,7.36 3.52,10.64 3.52,3.28 9.36,3.28 2.8,0 4.56,-0.56 1.84,-0.64 3.28,-1.52 z"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round"
+             id="path928" />
+          <path
+             d="m 426.53774,348.08002 q 2.16,10.48 13.76,10.48 3.36,0 6.08,-1.12 2.72,-1.12 4.32,-2.4 1.92,1.12 1.92,3.04 0,1.12 -1.04,2.16 -0.96,1.04 -2.72,1.84 -1.68,0.8 -4,1.28 -2.24,0.48 -4.88,0.48 -9.28,0 -14.72,-5.04 -5.36,-5.04 -5.36,-14.72 0,-4.56 1.28,-8.08 1.36,-3.6 3.68,-6.08 2.4,-2.48 5.68,-3.76 3.28,-1.36 7.12,-1.36 3.6,0 6.64,1.2 3.04,1.2 5.2,3.44 2.24,2.16 3.44,5.2 1.28,2.96 1.28,6.56 0,1.76 -0.8,2.56 -0.8,0.72 -2.24,0.88 z m 11.04,-18.08 q -4.88,0 -8.08,3.44 -3.2,3.36 -3.36,9.68 l 22,-3.04 q -0.4,-4.4 -3.12,-7.2 -2.64,-2.88 -7.44,-2.88 z"
+             style="font-style:normal;font-variant:normal;font-weight:normal;font-stretch:normal;font-size:80px;font-family:'Baloo 2';-inkscape-font-specification:'Baloo 2, Normal';font-variant-ligatures:normal;font-variant-caps:normal;font-variant-numeric:normal;font-variant-east-asian:normal;stroke-width:0.749813;stroke-linecap:butt;stroke-linejoin:round"
+             id="path930" />
         </g>
       </g>
     </g>
