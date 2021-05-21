@@ -77,7 +77,7 @@ html_sidebars = {"**": ["about.html",
 html_theme_options = {
     "description"   : "Adding hydrogen atoms to molecular models",
     "logo"          : "assets/hydride_logo.png",
-    "logo_name"     : "true",
+    "logo_name"     : "false",
     "github_user"   : "biotite-dev",
     "github_repo"   : "hydride",
     "github_banner" : "true",
