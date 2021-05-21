@@ -19,7 +19,7 @@ Since it does not require force-field parameters for the specific
 molecule(s), it can be used for adding hydrogen atoms to almost any
 organic molecule - from small ligands to large protein complexes.
 
-.. image:: example_structure.png
+.. image:: /images/cover_structure.png
    :width: 400
    :align: center
 
