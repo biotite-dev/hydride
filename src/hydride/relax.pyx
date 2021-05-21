@@ -281,7 +281,7 @@ class MinimumFinder:
         self._elec_param  = np.asarray(elec_param)
 
 
-        # Calculate nonbonded (LJ) parameters for interaction pairs
+        # Calculate LJ parameters for interaction pairs
         nb_values = np.array(
             [NB_VALUES[element] for element in atoms.element],
             dtype=np.float32
