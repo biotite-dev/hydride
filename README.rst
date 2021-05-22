@@ -1,4 +1,4 @@
-.. image:: doc/statix/assets/hydride_logo.svg
+.. image:: doc/static/assets/hydride_logo.svg
    :width: 400
    :align: center
 
@@ -19,7 +19,7 @@ Since it does not require force-field parameters for the specific
 molecule(s), it can be used for adding hydrogen atoms to almost any
 organic molecule - from small ligands to large protein complexes.
 
-.. image:: doc/example_structure.png
+.. image:: doc/images/cover_structure.svg
    :width: 400
    :align: center
 
