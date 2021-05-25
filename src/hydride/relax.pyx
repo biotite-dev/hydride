@@ -803,7 +803,7 @@ def _find_rotatable_bonds(atoms):
         The rotatable bonds.
         The tuple elements are
 
-            #. Atom index of heavy atom with bond hydrogen atoms.
+            #. Atom index of heavy atom with bonded hydrogen atoms.
             #. Atom index of bonded heavy atom.
             #. If false, the bond can only be rotated by 180°.
             #. Atom indices of bonded hydrogen atoms
