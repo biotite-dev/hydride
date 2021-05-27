@@ -31,12 +31,12 @@ class FragmentLibrary:
     a dictionary mapping these properties to heavy and hydrogen atom
     positions.
 
-    If hydrogen atoms should be added to a subject structure,
-    the subject structure is also split into fragments.
+    If hydrogen atoms should be added to a target structure,
+    the target structure is also split into fragments.
     Now the corresponding reference fragment in the library dictionary
     is accessed for each fragment.
     The corresponding atom coordinates of the reference fragment
-    are superimposed [1]_ [2]_ onto the subject fragment to obtain the
+    are superimposed [1]_ [2]_ onto the target fragment to obtain the
     hydrogen coordinates for the heavy atom.
 
     The constructor of this class creates an empty library.
@@ -164,7 +164,7 @@ class FragmentLibrary:
         if mask is None:
             mask = np.ones(atoms.array_length(), dtype=bool)
 
-        # The subject and reference heavy atom coordinates
+        # The target and reference heavy atom coordinates
         # for each fragment
         sub_frag_center_coord = np.zeros(
             (atoms.array_length(), 3), dtype=np.float32
@@ -194,7 +194,7 @@ class FragmentLibrary:
             sub_frag_center_coord[i] = center_coord
             sub_frag_heavy_coord[i] = heavy_coord
             # The hydrogen_coord can be ignored:
-            # In the subject structure are no hydrogen atoms
+            # In the target structure are no hydrogen atoms
             hit = self._frag_dict.get(
                 (central_element, central_charge, stereo, tuple(bond_types))
             )
@@ -209,21 +209,21 @@ class FragmentLibrary:
                 ref_frag_hydrogen_coord[i, :len(ref_hydrogen_coord)] \
                     = ref_hydrogen_coord
 
-        # Translate the subject coordinates,
+        # Translate the target coordinates,
         # so the central heavy atom is at origin
         # This has already been done for the reference atoms
         # in the 'add_molecule()' method
         sub_frag_heavy_coord -= sub_frag_center_coord[:, np.newaxis, :]
         # Get the rotation matrix required for superimposition of
-        # the reference coord to the subject coord 
+        # the reference coord to the target coord 
         matrices = _get_rotation_matrices(
             sub_frag_heavy_coord, ref_frag_heavy_coord
         )
         # Rotate the reference hydrogen atoms, so they fit the
-        # subject heavy atoms
+        # target heavy atoms
         sub_frag_hydrogen_coord = _rotate(ref_frag_hydrogen_coord, matrices)
         # Translate hydrogen atoms to the position of the
-        # non-centered central heavy subject atom
+        # non-centered central heavy target atom
         sub_frag_hydrogen_coord += sub_frag_center_coord[:, np.newaxis, :]
         
         # Turn into list and remove NaN paddings
