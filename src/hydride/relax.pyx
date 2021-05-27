@@ -419,25 +419,23 @@ class MinimumFinder:
 
     def _calculate_energies(self, prev_coord, next_coord):
         """
-        Calculate the result of the energy function for each group,
+        Evaluate the energy function for each interaction pair,
         based on the given atom coordinates.
 
         Parameters
         ----------
         prev_coord, next_coord : ndarray, shape=(n,3), dtype=np.float32
-            For a group *i* each pairwise atom distance required for the
-            energy function is calculated between the `next_coord` of
-            an atom in group *i* and the `prev_coord` of the respective
-            interacting atoms.
-            To calculate the group energies for a single conformation,
+            For each interaction pair, `next_coord` is taken for the
+            first atom and `prev_coord` is taken for the second atoms
+            To calculate the energy for a single conformation,
             `prev_coord` and `next_coord` can be given the same array.
 
         Returns
         -------
-        group_energies : ndarray, shape=(g,), dtype=np.float32
-            The energies for each group.
-            The group integer is used to get the energy for the
-            corresponding atom group.
+        group_energies : ndarray, shape=(p,), dtype=np.float32
+            The energies for each interaction pair.
+            The group integer can be used to get the sum the energies
+            for the corresponding atom group.
         """
         cdef int i
         
