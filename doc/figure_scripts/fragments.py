@@ -1,11 +1,3 @@
-import numpy as np
-import pyximport
-pyximport.install(
-    build_in_temp=False,
-    setup_args={"include_dirs":np.get_include()},
-    language_level=3
-)
-
 import time
 from os.path import join, abspath, dirname
 import numpy as np
@@ -13,7 +5,7 @@ from sklearn.decomposition import PCA
 import biotite.structure as struc
 import biotite.structure.io.mol as mol
 import ammolite
-from util import COLORS
+from util import COLORS, init_pymol_parameters
 
 
 PNG_SIZE = (300, 300)
@@ -36,15 +28,7 @@ benzene_heavy, butylene_heavy, toluene_heavy = [
 ]
 
 
-ammolite.cmd.bg_color("white")
-ammolite.cmd.set("dash_gap", 0.3)
-ammolite.cmd.set("dash_width", 2.0)
-ammolite.cmd.set("ray_trace_mode", 3)
-ammolite.cmd.set("ray_trace_disco_factor", 1.0)
-ammolite.cmd.set("ray_shadows", 0)
-ammolite.cmd.set("spec_reflect", 0)
-ammolite.cmd.set("spec_power", 0)
-ammolite.cmd.set("depth_cue", 0)
+init_pymol_parameters()
 
 center = struc.array([struc.Atom([0,0,0], atom_name="C", element="C")])
 center.bonds = struc.BondList(1)

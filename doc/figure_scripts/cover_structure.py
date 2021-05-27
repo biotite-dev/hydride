@@ -13,7 +13,7 @@ import biotite.structure.io.mmtf as mmtf
 import biotite.database.rcsb as rcsb
 import hydride
 import ammolite
-from util import COLORS
+from util import COLORS, init_pymol_parameters
 
 
 mmtf_file = mmtf.MMTFFile.read(rcsb.fetch("1bna", "mmtf"))
@@ -32,16 +32,8 @@ all_atoms = all_atoms[np.isin(all_atoms.res_id, (3, 22))]
 bonds = struc.hbond(all_atoms)
 
 
-ammolite.cmd.bg_color("white")
+init_pymol_parameters()
 ammolite.cmd.set("valence", 0)
-ammolite.cmd.set("dash_gap", 0.3)
-ammolite.cmd.set("dash_width", 2.0)
-ammolite.cmd.set("ray_trace_mode", 3)
-ammolite.cmd.set("ray_trace_disco_factor", 1.0)
-ammolite.cmd.set("ray_shadows", 0)
-ammolite.cmd.set("spec_reflect", 0)
-ammolite.cmd.set("spec_power", 0)
-ammolite.cmd.set("depth_cue", 0)
 
 pymol_heavy = ammolite.PyMOLObject.from_structure(heavy_atoms)
 pymol_heavy.show_as("sticks")

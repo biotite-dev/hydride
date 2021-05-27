@@ -35,9 +35,9 @@ Such a template structure file for a molecule can be e.g. downloaded from a
 ligand database.
 In the command line interface the template structure file is provided via
 the ``--fragments``/``-f`` parameter.
-Note that only the *MMTF*, *MOL* and *SDF* formats are currently the only
-reasonable formats, since the bond information can only be read from these
-formats.
+Note that the *MMTF*, *MOL* and *SDF* formats are currently the only
+reasonable formats, since the bond information can be read exclusively from
+these formats.
 In the Python API the template can be added to the standard fragment library.
 
 .. code-block:: python
