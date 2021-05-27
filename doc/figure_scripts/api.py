@@ -168,7 +168,9 @@ hydride.add_hydrogen(molecule, name_library=library)
 
 
 print("\nEND OF SNIPPET\n", end="")
-import matplotlib
+import matplotlib.pyplot as plt
+import matplotlib as mpl
+plt.rcParams['axes.prop_cycle'] = mpl.cycler(color=[COLORS["N"]])
 
 
 ########################################################################

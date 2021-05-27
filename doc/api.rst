@@ -287,11 +287,10 @@ If the residues in the input structure are part of the
 
     molecule.bonds = struc.connect_via_residue_names(molecule)
 
+|
 
 Classes and functions
 ---------------------
-
-|
 
 .. autoclass:: FragmentLibrary
     :members:
