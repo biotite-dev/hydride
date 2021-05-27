@@ -72,8 +72,10 @@ always in the coordinate origin.
 Duplicate library keys are ignored *(slightly transparent)* and hence
 will not be part of the fragment library.
 
-.. image:: /images/library.png
+.. figure:: /images/library.png
    :width: 800
+
+   *Library creation with fragments from benzene and isobutylene.*
 
 In the figure shown above the library contains only fragments from benzene and
 isobutylene.
@@ -86,8 +88,10 @@ fragments in a similar fashion.
 But in contrast to the molecules for the fragment library the created
 fragments of course miss hydrogen atoms.
 
-.. image:: /images/target_fragments.png
+.. figure:: /images/target_fragments.png
    :width: 800
+
+   *Fragmentation of the target molecule toluene.*
 
 Now for each target molecule fragment *(red)*, or *target fragment* in short,
 the matching fragment from the fragment library *(blue)* is selected.
@@ -105,8 +109,10 @@ of the target fragment simply by applying the reversed translation vector.
 The hydrogen coordinates of the transformed library fragment *(encircled)* are
 the desired coordinates for the target fragment.
 
-.. image:: /images/superimposition.png
+.. figure:: /images/superimposition.png
    :width: 800
+
+   *Superimposition of a library fragment onto a target fragment.*
 
 If the library does not contain a match for a target molecule fragment, the
 algorithm is unable to assign hydrogen atoms to this central atom.
@@ -117,69 +123,121 @@ After this procedure is finished for each target fragment, the obtained
 hydrogen positions are adopted by the target molecule.
 *(The hydrogen position of the previous figure is encircled again.)*
 
-.. image:: /images/position_adoption.png
+.. figure:: /images/position_adoption.png
    :width: 800
+
+   *Adoption of obtained hydrogen coordinates.*
 
 
 Hydrogen relaxation
 -------------------
 
+Energy function
+^^^^^^^^^^^^^^^
+
 After initial hydrogen atom placement the position of hydrogen connected to
 terminal heavy atoms can be further optimized, i.e. the energy minimized,
 in order to reduce steric clashes and form hydrogen bonds for example.
 
-*Hydride* uses an energy function based on non-bonded interaction terms
-between all pairs of rotatable hydrogen atoms (:math:`\sum^\text{H}`)
-with all other atoms (:math:`\sum^\text{All}`).
-All other interaction pairs do not need to be considered, as their distances
-to each other are not altered during the course of relaxation.
+*Hydride* uses an energy function :math:`V` based on the non-bonded
+interaction terms of the *Universal Force Field* (UFF) [3]_.
 The interaction terms comprise an electrostatic :math:`V_\text{el}` and a
-*Lennart-Jones* :math:`V_\text{LJ}` term:
+*Lennart-Jones* :math:`V_\text{LJ}` term.
+For the position vectors :math:`\vec{r}` of two atoms :math:`i` and :math:`j`
+the contribution to the energy function is
 
 .. math::
 
-   V = V_\text{el} + V_\text{nb}
-   
-   V_\text{el} = 332.067
-   \sum_i^\text{H}  \sum_j^\text{All}
-   \frac{q_i q_j}{D_{ij}}
-
-   E_\text{nb} = \epsilon_{ij}
-   \sum_i^\text{H}  \sum_j^\text{All}
-   \left(
-       \frac{r_{ij}^{12}}{D_{ij}^{12}} - 2\frac{r_{ij}^6}{D_{ij}^6}
+   V_(\vec{r}_i, \vec{r}_j) &= 
+      V_\text{el}(\vec{r}_i, \vec{r}_j) + V_\text{LJ}(\vec{r}_i, \vec{r}_j) \\
+      V_\text{el}(\vec{r}_i, \vec{r}_j) &= 332.067 \frac{q_i q_j}{D_{ij}} \\
+      V_\text{LJ}(\vec{r}_i, \vec{r}_j) &= \epsilon_{ij} \left(
+       \frac{\delta_{ij}^{12}}{D_{ij}^{12}} - 2\frac{\delta_{ij}^6}{D_{ij}^6}
    \right)
 
-:math:`D_{ij}` is the distance between the atoms :math:`i` and :math:`j`.
-:math:`\epsilon_{ij}` and :math:`r_{ij}` are the well depth and optimal
+:math:`D_{ij}` is the euclidean distance between the atoms :math:`i`
+and :math:`j`.
+
+.. math::
+
+   D_{ij} = | \vec{r}_j - \vec{r}_i |
+
+:math:`\epsilon_{ij}` and :math:`\delta_{ij}` are the well depth and optimal
 distance between these atoms, respectively, and are calculated as
 
 .. math::
 
-   \epsilon_{ij} = \sqrt{ \epsilon_i  \epsilon_j},
-   
-   r_{ij} = \frac{r_i + r_j}{2}.
+   \epsilon_{ij} &= \sqrt{ \epsilon_i  \epsilon_j}, \\
+   \delta_{ij}   &= \frac{r_i + r_j}{2}.
 
-:math:`\epsilon` and :math:`r` are taken from the
-*Universal Force Field* [3]_.
-To obtain more accurate distances for hydrogen bonds, :math:`r` is multiplied
-with :math:`0.79` for potential hydrogen bond acceptor-donor pairs [4]_.
+:math:`\epsilon` and :math:`\delta` are taken from the UFF.
+To obtain more accurate distances for hydrogen bonds, :math:`\delta` is
+multiplied with :math:`0.79` for potential hydrogen bond acceptor-donor
+pairs [4]_.
 By default, the charges :math:`q` are calculated via the PEOE method [5]_
 implemented in :func:`biotite.structure.partial_charges()`.
 
-|
+Interactions are calculated between all pairs of rotatable hydrogen atoms
+and all other atoms within a defined cutoff distance of 10 Å.
+All other interaction pairs do not need to be considered, as their distances
+to each other are not altered during the course of relaxation.
+
+**Units:**
+
+   - Energies: *(kcal/mol)*
+   - Lengths: *(Å)*
+   - Charges: *(1)*
+
+Relaxation algorithm
+^^^^^^^^^^^^^^^^^^^^
 
 Based on this energy function, the applicable hydrogen atoms are iteratively
 rotated about the bond of the terminal heavy atom.
 However, if the terminal heavy atom is bonded via a (partial) double bond to
-the rest of the molecule free rotation is prohibited.
+the rest of the molecule, free rotation is prohibited.
 For `imine <https://en.wikipedia.org/wiki/Imine>`_ groups, as they appear e.g.
 in arginine, two hydrogen conformations are still possible though.
 Due to these discrete values a continuous optimizer cannot be employed.
-Hence, *Hydride's* uses a *hill climbing* algorithm:
+Hence, *Hydride* uses a variant of the *hill climbing* algorithm, that aims
+to reach local minimum of the energy function :math:`V`.
 
-Some sentences about the optimizer.
+Let :math:`\phi_1 ... \phi_n` be the dihedral angles of the rotatable terminal
+bonds :math:`1 ... n`.
+Each :math:`\phi_k` affects the positions :math:`\vec{r}_p ... \vec{r}_q` of
+the hydrogen atoms bonded to the corresponding heavy atom.
 
+In each iteration the dihedral angles of all rotatable bonds are altered by a
+an angle increment :math:`\Delta \phi` in either direction.
+:math:`\Delta \phi` is small (by default 10°) or 180° for freely rotatable
+bonds and imine groups, respectively.
+Let :math:`\phi_1^* ... \phi_n^*` be these updated angles.
+Let :math:`\vec{r}_p^* ... \vec{r}_q^*` be the new positions resulting from
+the new angle :math:`\phi_k^*`.
+
+For each rotatable bond :math:`k`, the energy difference with respect to the
+change in :math:`\phi_k` (:math:`\Delta V^*`) is calculated as
+
+.. math::
+
+   \Delta V^*(k) =
+      \sum_{i=p}^q \sum_j^\text{all} V_(\vec{r}_i^*, \vec{r}_j) - V_(\vec{r}_i, \vec{r}_j)
+
+Put into words, this means that all interaction terms are evaluated that
+involve the atoms :math:`p ... q` affected by the rotatable bond :math:`k`.
+For each interaction term, the energy difference between the positions
+before and after the isolated update of :math:`\phi_k` is calculated.
+:math:`\Delta V^*` is the sum of these energy differences.
+
+If :math:`\Delta V^*(k)` is negative, the new dihedral angle for bond :math:`k`
+is preferable, as it leads to a lower energy. 
+Hence, :math:`\phi_k^*` is accepted and used as the new :math:`\phi_k` in the
+next iteration.
+Otherwise, it is rejected and the next iteration uses the :math:`\phi_k` from
+the previous iteration.
+
+When within an iteration no :math:`\phi_k^*` is accepted anymore for any
+:math:`k`, the energy has reached the local minimum and the algorithm has
+finished.
 
 References
 ----------
