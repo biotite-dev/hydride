@@ -263,7 +263,7 @@ def test_limited_iterations():
     That is only true, if the number of iterations is low enough,
     so that the relaxation does not terminate before.
     """
-    ITERATIONS = 8
+    ITERATIONS = 4
     
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
     atoms = mmtf.get_structure(

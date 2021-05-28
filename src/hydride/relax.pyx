@@ -383,9 +383,8 @@ class MinimumFinder:
         global_energy : float
             The global energy of the accepted conformation, according
             to the underlying energy function.
-        any_accepted : bool
-            True, if any of the coordinates from `next_coord` were
-            accepted, false otherwise.
+        accept_next : ndarray, shape=(g,), dtype=bool
+            True, for all groups that were acepted, false otherwise.
         """
         cdef int i
 
@@ -422,7 +421,8 @@ class MinimumFinder:
         self._prev_group_energies = self._sum_for_groups(prev_energies)
         global_energy = np.sum(prev_energies[self._dedup_interaction_mask])
         
-        return self._prev_coord, global_energy, np.asarray(accept_next).any()
+        return self._prev_coord, global_energy, \
+               np.frombuffer(accept_next, dtype=bool)
     
 
     def _calculate_energies(self, prev_coord, next_coord):
@@ -679,13 +679,17 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
     next_coord = np.zeros(prev_coord.shape, dtype=np.float32)
     # Helper variable for the support-subtracted vector
     center_coord = np.zeros(3, dtype=np.float32)
+    # Rotation angles for each iteration step
+    angles = np.full(len(rotatable_bonds), angle_increment, dtype=np.float32)
+    # Set an angle of 180° for groups with restricted rotation freedom
+    angles[~rotation_freedom] = np.pi
+    cdef float32[:] angles_v = angles
     # Variables for saving whether any changes were accepted in a step
     cdef bint curr_accepted, prev_accepted = True
     cdef float curr_energy, prev_energy = np.nan
     cdef float32[:,:] prev_coord_v
     cdef float32[:,:] next_coord_v
     cdef float32[:] center_coord_v = center_coord
-    cdef float32[:] angles_v
     cdef float32 angle
     cdef float32 sin_a, cos_a, icos_a
     cdef float32 x, y, z
@@ -697,15 +701,6 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
             break
         
         # Generate next hydrogen conformation
-        n_free_rotations = np.count_nonzero(rotation_freedom)
-        angles = np.zeros(len(rotatable_bonds), dtype=np.float32)
-        # Rotate bonds with rotation freedom
-        # alternatingly either clockwise or counterclockwise
-        angles[rotation_freedom] = angle_increment if n % 2 else -angle_increment
-        # There is only one way
-        # to rotate a bond without rotation freedom
-        angles[~rotation_freedom] = np.pi
-        angles_v = angles
         # Calculate rotation matrices for these angles
         for mat_i in range(angles_v.shape[0]):
             x = axes_v[mat_i, 0]
@@ -755,8 +750,15 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
 
         
         # Calculate next conformation based on energy
-        curr_coord, curr_energy, curr_accepted \
+        curr_coord, curr_energy, accepted_angles \
             = minimum_finder.select_minimum(next_coord)
+        # Keep rotation angles, that were accepted, in the same
+        # direction in the next iteration, following the gradient
+        # Invert all angles that were not accepted to try the other
+        # direction
+        # For angles restricted to 180° this has no effect
+        angles[~accepted_angles] *= -1
+        curr_accepted = accepted_angles.any()
         if not curr_accepted and not prev_accepted:
             # No coordinates were accepted from the current and previous
             # step -> Relaxation converged -> Early termination
