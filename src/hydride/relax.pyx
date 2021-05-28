@@ -48,8 +48,8 @@ cdef dict NB_VALUES = {
     "MG": (3.021, 0.111),
     "AL": (4.499, 0.505),
     "SI": (4.295, 0.402),
-    "P": (4.147, 0.305),
-    "S": (4.035, 0.274),
+    "P" : (4.147, 0.305),
+    "S" : (4.035, 0.274),
     "CL": (3.947, 0.227),
     "AR": (3.868, 0.185),
     "K" : (3.812, 0.035),
@@ -253,6 +253,11 @@ class MinimumFinder:
                 # -> it is sufficient to check the first entry
                 if bond_indices[atom_i, 0] == atom_j:
                     continue
+                # Do not include interactions with atoms
+                # that have unknown, e.g. 'placeholder' elements
+                if atoms.element[atom_j] not in NB_VALUES.keys():
+                    warnings.warn(f"Unknown element '{atoms.element[atom_j]}'")
+                    continue
                 interaction_pairs[pair_i, 0] = atom_i
                 interaction_pairs[pair_i, 1] = atom_j
                 interaction_groups[pair_i] = groups[atom_i]
@@ -283,7 +288,10 @@ class MinimumFinder:
 
         # Calculate LJ parameters for interaction pairs
         nb_values = np.array(
-            [NB_VALUES[element] for element in atoms.element],
+            [
+                NB_VALUES.get(element, (np.nan, np.nan))
+                for element in atoms.element
+            ],
             dtype=np.float32
         )
         cdef float32[:] radii = nb_values[:,0]
