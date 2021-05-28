@@ -100,13 +100,22 @@ class AtomNameLibrary:
             # Hydrogen names from library
             for i, hydrogen_name in enumerate(hydrogen_names):
                 yield hydrogen_name
-            base_name = hydrogen_name[:-1]
-            number = int(hydrogen_name[-1])
-            while True:
-                # Proceed by increasing the atom number
-                # e.g. CB -> HB1, HB2, HB3, ...
-                number += 1
-                yield f"{base_name}{number}"
+            try:
+                base_name = hydrogen_name[:-1]
+                number = int(hydrogen_name[-1])
+                while True:
+                    # Proceed by increasing the atom number
+                    # e.g. CB -> HB1, HB2, HB3, ...
+                    number += 1
+                    yield f"{base_name}{number}"
+            except ValueError:
+                # Atom name has no number at the end
+                # -> simply append number
+                number = 0
+                while True:
+                    number += 1
+                    yield f"{hydrogen_name}{number}"
+
 
         
         else:
