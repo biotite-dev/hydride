@@ -256,14 +256,14 @@ def test_partial_charges(ethane, repulsive):
 
 def test_limited_iterations():
     """
-    Test whether the `iterations` works properly.
+    Test whether the `iterations` parameter works properly.
     It is expected that the number of returned models,
     if `return_trajectory, is set to true, is equal to the given number
     of maximum iterations.
     That is only true, if the number of iterations is low enough,
     so that the relaxation does not terminate before.
     """
-    ITERATIONS = 8
+    ITERATIONS = 4
     
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
     atoms = mmtf.get_structure(
