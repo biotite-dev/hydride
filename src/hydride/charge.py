@@ -109,6 +109,7 @@ def estimate_amino_acid_charges(atoms, ph):
 
     atom_charges = np.zeros(atoms.array_length(), dtype=int)
     
+    # Charges for termini
     amino_acid_mask = struc.filter_amino_acids(atoms)
     amino_indices   = np.where((atoms.atom_name ==   "N") & amino_acid_mask)[0]
     carboxy_indices = np.where((atoms.atom_name == "OXT") & amino_acid_mask)[0]
@@ -117,7 +118,7 @@ def estimate_amino_acid_charges(atoms, ph):
         start = chain_starts[i]
         stop  = chain_starts[i+1]
         chain_amino_indices = amino_indices[
-            (amino_indices >= start) & (carboxy_indices < stop)
+            (amino_indices >= start) & (amino_indices < stop)
         ]
         chain_carboxy_indices = carboxy_indices[
             (carboxy_indices >= start) & (carboxy_indices < stop)
@@ -129,6 +130,7 @@ def estimate_amino_acid_charges(atoms, ph):
             carboxy_i = np.max(chain_carboxy_indices)
             atom_charges[carboxy_i] = charges_cooh[atoms.res_name[carboxy_i]]
     
+    # Charges for other heavy atoms
     for (res_name, atom_name), charge in charges_side_chain.items():
         mask  = (atoms.res_name == res_name) & (atoms.atom_name == atom_name)
         atom_charges[mask] = charge
