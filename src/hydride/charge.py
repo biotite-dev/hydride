@@ -126,7 +126,7 @@ def estimate_amino_acid_charges(atoms, ph):
         if len(chain_amino_indices) > 0:
             amino_i = np.min(chain_amino_indices)
             atom_charges[amino_i] = charges_nh3[atoms.res_name[amino_i]]
-        if len(chain_amino_indices) > 0:
+        if len(chain_carboxy_indices) > 0:
             carboxy_i = np.max(chain_carboxy_indices)
             atom_charges[carboxy_i] = charges_cooh[atoms.res_name[carboxy_i]]
     
