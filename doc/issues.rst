@@ -5,8 +5,8 @@
 Common issues
 =============
 
-A group has an unexpected number of hydrogen atoms, e.g. a carboy group is protonated
--------------------------------------------------------------------------------------
+A group has an unexpected number of hydrogen atoms, e.g. a carboxy group is protonated
+--------------------------------------------------------------------------------------
 
 Probably, the formal charges for the concerning heavy atom is incorrect.
 If the formal charge of the oxygen atom of a carboxy group is set to 0, a
