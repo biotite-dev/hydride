@@ -269,9 +269,10 @@ class MinimumFinder:
         # Calculate electrostatic parameters for interaction pairs
         cdef float32[:] charges
         if partial_charges is None:
-            charges = struc.partial_charges(atoms)
-        else:
-            charges = partial_charges.astype(np.float32, copy=False)
+            partial_charges = struc.partial_charges(atoms)
+        # Handle NaN charges as neutral charges
+        partial_charges[np.isnan(partial_charges)] = 0
+        charges = partial_charges.astype(np.float32, copy=False)
         cdef float32[:] elec_param  = np.zeros(pair_i, dtype=np.float32)
         for i in range(pair_i):
             elec_param[i] = 332.0673 * (
