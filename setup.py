@@ -15,7 +15,6 @@ import numpy as np
 import biotite.structure as struc
 import biotite.structure.info as info
 from biotite.structure.info.misc import _res_names
-from src.hydride import FragmentLibrary, AtomNameLibrary
 
 
 # Molecules that appear is most structures
@@ -37,6 +36,8 @@ PROMINENT_MOLECULES = [
 original_wd = os.getcwd()
 # Change directory to setup directory to ensure correct file identification
 os.chdir(dirname(abspath(__file__)))
+# Import is relative to working directory
+from src.hydride import FragmentLibrary, AtomNameLibrary
 
 # Simply import long description from README file
 with open("README.rst") as readme:
@@ -203,7 +204,7 @@ setup(
 
     entry_points = {"console_scripts": "hydride = hydride.cli:main"},
     
-    install_requires = ["biotite >= 0.27",
+    install_requires = ["biotite >= 0.28",
                         "numpy >= 1.13"],
     python_requires = ">=3.6",
     

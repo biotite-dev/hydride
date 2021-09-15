@@ -256,7 +256,7 @@ def test_partial_charges(ethane, repulsive):
 
 def test_limited_iterations():
     """
-    Test whether the `iterations` works properly.
+    Test whether the `iterations` parameter works properly.
     It is expected that the number of returned models,
     if `return_trajectory, is set to true, is equal to the given number
     of maximum iterations.
