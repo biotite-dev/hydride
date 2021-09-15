@@ -280,7 +280,6 @@ class MinimumFinder:
             )
         self._elec_param  = np.asarray(elec_param)
 
-
         # Calculate LJ parameters for interaction pairs
         nb_values = np.array(
             [NB_VALUES[element] for element in atoms.element],
@@ -406,8 +405,9 @@ class MinimumFinder:
         
         # Prepare the reference energies for the next call of
         # 'select_minimum()'
-        # Do this after this call, instead of the beginning of the next
-        # call, to be able to return the global energies for this step
+        # Do this after this call of select_minimum(), instead of the beginning
+        # of the next call,
+        # to be able to return the global energies for this step
         prev_energies = self._calculate_energies(
             self._prev_coord, self._prev_coord
         )
@@ -568,6 +568,11 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
         If set to true, also the calculated energy for the conformation
         of each relaxation step is returned.
         This parameter can be useful for monitoring and debugging.
+    partial_charges : ndarray, shape=(n,), dtype=float, optional
+        The partial charges for each atom used to calculate Coulomb
+        interactions.
+        By default the charges are calculated using
+        :func:`biotite.structure.partial_charges()`.
     
     Returns
     -------
@@ -760,7 +765,7 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
             break
         if not np.isnan(prev_energy) and curr_energy > prev_energy:
             # The relaxation algorithm allows the case, that the energy
-            # oscillates between two almost-minimum energies due to its 
+            # oscillates between multiple almost-minimum energies due to its 
             # discrete nature and so convergence is never reached
             # To prevent this, the relaxation terminates, if the energy
             # of the accepted is higher than the one before
