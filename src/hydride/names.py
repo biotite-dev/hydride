@@ -116,11 +116,10 @@ class AtomNameLibrary:
                     number += 1
                     yield f"{hydrogen_name}{number}"
 
-
         
         else:
             if len(heavy_atom_name) == 0:
-                # Atom array has not atom names
+                # Atom array has no atom names
                 # (loaded e.g. from MOL file)
                 # -> Also no atom names for hydrogen atoms
                 while True:
@@ -128,24 +127,17 @@ class AtomNameLibrary:
             if heavy_atom_name[-1] in string.digits:
                 # Atom name ends with number
                 # -> assume ligand atom naming
+                # C1 -> H1, H1A, H1B
                 number = int(
                     ''.join([c for c in heavy_atom_name if c.isdigit()])
                 )
                 element = heavy_atom_name[0]
-                if element == "C":
-                    # C1 -> H1, H1A, H1B
-                    yield f"H{number}"
-                    i = 0
-                    while True:
-                        yield f"H{number}{string.ascii_uppercase[i]}"
-                        i += 1
-                else:
-                    # O1 -> HO1, HO1A, HO1B
-                    yield f"H{element}{number}"
-                    i = 0
-                    while True:
-                        yield f"H{element}{number}{string.ascii_uppercase[i]}"
-                        i += 1
+                # C1 -> H1, H1A, H1B
+                yield f"H{number}"
+                i = 0
+                while True:
+                    yield f"H{number}{string.ascii_uppercase[i]}"
+                    i += 1
             elif len(heavy_atom_name) > 1:
                 # e.g. CA -> HA, HA2, HA3, ...
                 suffix = heavy_atom_name[1:]
