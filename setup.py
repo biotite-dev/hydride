@@ -145,7 +145,6 @@ with open(join("src", "hydride", "fragments.pickle"), "wb") as fragments_file:
     pickle.dump(std_fragment_library._frag_dict, fragments_file)
 
 # Compile atom name library
-mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
 std_name_library = AtomNameLibrary()
 with warnings.catch_warnings():
     warnings.simplefilter("ignore")
@@ -153,7 +152,7 @@ with warnings.catch_warnings():
     # from prominent molecules are stored
     for i, mol_name in enumerate(PROMINENT_MOLECULES):
         print(
-            f"Compiling atom name library... ({i+1}/{len(mol_names)})",
+            f"Compiling atom name library... ({i+1}/{len(PROMINENT_MOLECULES)})",
             end="\r"
         )
         try:
