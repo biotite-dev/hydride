@@ -646,8 +646,15 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
 
     rotatable_bonds = _find_rotatable_bonds(atoms)
     if len(rotatable_bonds) == 0:
-        # No bond to optimize
-        return coord.copy()
+        # No bond to optimize -> Can return without optimization
+        if return_trajectory:
+            return_coord = coord.copy()[np.newaxis, ...]
+        else:
+            return_coord = coord.copy()
+        if return_energies:
+            return return_coord, np.zeros(0)
+        else:
+            return return_coord
 
     rotation_axes = np.zeros(
         (len(rotatable_bonds), 2, 3), dtype=np.float32

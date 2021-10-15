@@ -3,6 +3,7 @@
 # information.
 
 from os.path import join
+import itertools
 import pytest
 import numpy as np
 import biotite.structure as struc
@@ -275,3 +276,41 @@ def test_limited_iterations():
     )
 
     assert traj_coord.shape[0] == ITERATIONS
+
+
+@pytest.mark.parametrize(
+    "iterations, return_trajectory, return_energies",
+    itertools.product(
+        [None, 100],
+        [False, True],
+        [False, True]
+    )
+)
+def test_shortcut_return(iterations, return_trajectory, return_energies):
+    """
+    Test whether the shortcut return, that happens if no rotatable bonds
+    are found, has the same return types as the regular return.
+    Therefore the output types of two molecules, one with and one 
+    without rotatable bonds, are compared.
+    """
+    # Rotatable
+    ref_atoms  = info.residue("GLY")
+    # Non-rotatable
+    test_atoms = info.residue("HOH")
+
+    ref_output = hydride.relax_hydrogen(
+        ref_atoms, iterations,
+        return_trajectory=return_trajectory, return_energies=return_energies
+    )
+    test_output = hydride.relax_hydrogen(
+        test_atoms, iterations,
+        return_trajectory=return_trajectory, return_energies=return_energies
+    )
+
+    if isinstance(ref_output, tuple):
+        assert isinstance(test_output, tuple)
+        assert len(test_output) == len(ref_output)
+        for i in range(len(ref_output)):
+            assert isinstance(test_output[i], type(ref_output[i]))
+    else:
+        assert isinstance(test_output, type(ref_output))
