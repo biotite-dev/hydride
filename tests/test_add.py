@@ -124,11 +124,46 @@ def test_molecule_without_hydrogens():
     assert test_molecule == ref_molecule
 
 
-@pytest.mark.parametrize("fill_value", [False, True])
-def test_atom_mask(fill_value):
+def test_atom_mask():
     """
-    Check whether the input atom mask works properly by testing extreme
-    cases.
+    Test atom mask usage by hydrogenating in two steps:
+    Firstly one random half is masked, secondly the other half is
+    masked.
+    After reordering the atoms in the standard way, the result should be
+    equal to hydrogenating in a single step.
+    """
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    heavy_atoms = atoms[atoms.element != "H"]
+
+    ref_atoms, _ = hydride.add_hydrogen(heavy_atoms)
+    ref_atoms = ref_atoms[info.standardize_order(ref_atoms)]
+
+    # Hydrogenate the first random half of the molecule
+    random_mask = np.random.choice([False, True], heavy_atoms.array_length())
+    half_hydrogenated, orig_mask = hydride.add_hydrogen(
+        heavy_atoms, random_mask
+    )
+    # Hydrogenate the second half by inverting mask
+    # Special handling due to additional hydrogen atoms
+    # after first hydrogenation
+    inv_random_mask = np.zeros(half_hydrogenated.array_length(), bool)
+    inv_random_mask[orig_mask] = ~random_mask
+    test_atoms, _ = hydride.add_hydrogen(
+        half_hydrogenated, inv_random_mask
+    )
+    test_atoms = test_atoms[info.standardize_order(test_atoms)]
+
+    assert test_atoms == ref_atoms
+
+
+@pytest.mark.parametrize("fill_value", [False, True])
+def test_atom_mask_extreme_case(fill_value):
+    """
+    Check whether the input atom mask works properly by testing the
+    cases, where no atom an each atom is masked, respectively.
     """
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
     atoms = mmtf.get_structure(

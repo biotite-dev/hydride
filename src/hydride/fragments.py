@@ -146,8 +146,8 @@ class FragmentLibrary:
             The structure must also include the *charge* annotation
             array, depicting the formal charge for each atom.
         mask : ndarray, shape=(n,), dtype=bool
-            A boolean mask that is true for each atom, where hydrogen
-            atom positions should be calculated.
+            A boolean mask that is true for each heavy atom, where
+            corresponsing hydrogen atom positions should be calculated.
             By default, hydrogen atoms are calculated for all applicable
             atoms.
 
@@ -181,11 +181,11 @@ class FragmentLibrary:
             (atoms.array_length(), 4, 3), np.nan, dtype=np.float32
         )
 
-        # Fil the coordinate arrays
+        # Fill the coordinate arrays
         fragments = _fragment(atoms, mask)
         for i, fragment in enumerate(fragments):
             if fragment is None:
-                # This atom is nt in mask
+                # This atom is not in mask
                 continue
             (
                 central_element, central_charge, stereo, bond_types,
@@ -248,8 +248,8 @@ def _fragment(atoms, mask=None):
         The structure must also include the *charge* annotation
         array, depicting the formal charge for each atom.
     mask : ndarray, shape=(n,), dtype=bool
-        A boolean mask that is true for each atom for which a fragment
-        should be created.
+        A boolean mask that is true for each heavy atom for which a
+        fragment should be created.
     
     Returns
     -------

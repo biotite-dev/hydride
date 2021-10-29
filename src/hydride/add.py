@@ -65,7 +65,7 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None):
    if name_library is None:
       name_library = AtomNameLibrary.standard_library()
 
-   if (atoms.element == "H").any():
+   if (atoms.element[mask] == "H").any():
       raise struc.BadStructureError(
          "Input structure already contains hydrogen atoms"
       )
