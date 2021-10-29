@@ -217,7 +217,8 @@ def run(args):
         if args.iterations is not None and args.iterations < 0:
             raise UserInputError("The number of iterations must be positive")
         model.coord = relax_hydrogen(
-            model, args.iterations, np.deg2rad(args.angle_increment)
+            model, args.iterations,
+            angle_increment=np.deg2rad(args.angle_increment)
         )
     
     try:

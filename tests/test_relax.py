@@ -314,3 +314,23 @@ def test_shortcut_return(iterations, return_trajectory, return_energies):
             assert isinstance(test_output[i], type(ref_output[i]))
     else:
         assert isinstance(test_output, type(ref_output))
+
+
+def test_atom_mask():
+    """
+    Test atom mask usage by relaxing only part of the model and
+    expect that no unmasked hydrogen positions changed.
+    """
+    MASKED_RES_IDS = np.arange(1, 11)
+
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    ref_coord = atoms.coord.copy()
+
+    mask = np.isin(atoms.res_id, MASKED_RES_IDS)
+    test_coord = hydride.relax_hydrogen(atoms, mask=mask)
+
+    assert (test_coord[~mask] == ref_coord[~mask]).all()
+    assert not (test_coord[mask] == ref_coord[mask]).all()

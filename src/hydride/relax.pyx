@@ -536,7 +536,8 @@ class MinimumFinder:
 
 
 
-def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
+def relax_hydrogen(atoms, iterations=None, mask= None,
+                   angle_increment=np.deg2rad(10),
                    return_trajectory=False, return_energies=False,
                    partial_charges=None):
     r"""
@@ -562,6 +563,10 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
         found, i.e. the hydrogen coordinates do not change anymore.
         If this parameter is set, the relaxation terminates before this
         point after the given number of interations.
+    mask : ndarray, shape=(n,), dtype=bool
+        Ignore bonds, where the index of the heavy atom in the mask is
+        False.
+        By default no bonds are ignored.
     angle_increment : float, optional
         The angle in radians by which a bond can be rotated in each
         iteration.
@@ -644,7 +649,7 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
     if iterations is not None and iterations < 0:
         raise ValueError("The number of iterations must be positive")
 
-    rotatable_bonds = _find_rotatable_bonds(atoms)
+    rotatable_bonds = _find_rotatable_bonds(atoms, mask)
     if len(rotatable_bonds) == 0:
         # No bond to optimize -> Can return without optimization
         if return_trajectory:
@@ -805,7 +810,7 @@ def relax_hydrogen(atoms, iterations=None, angle_increment=np.deg2rad(10),
         return return_coord
 
 
-def _find_rotatable_bonds(atoms):
+def _find_rotatable_bonds(atoms, mask=None):
     """
     Identify rotatable bonds between two heavy atoms, where one atom
     has only one heavy bond partner and one or multiple hydrogen
@@ -815,8 +820,12 @@ def _find_rotatable_bonds(atoms):
 
     Parameters
     ----------
-    atoms : AtomArray
+    atoms : AtomArray, shape=(n,)
         The structure to find rotatable bonds in.
+    mask : ndarray, shape=(n,), dtype=bool
+        Ignore bonds, where the index of the heavy atom in the mask is
+        False.
+        By default no bonds are ignored.
     
     Returns
     -------
@@ -831,6 +840,17 @@ def _find_rotatable_bonds(atoms):
     """
     cdef int i, j, h_i, bonded_i
 
+    cdef uint8[:] atom_mask
+    if mask is None:
+        atom_mask = np.ones(atoms.array_length(), dtype=np.uint8)
+    else:
+        if len(mask) != atoms.array_length():
+            raise IndexError(
+                f"Mask has length {len(atom_mask)}, "
+                f"but there are {atoms.array_length()} atoms"
+            )
+        atom_mask = mask.astype(np.uint8)
+        
     if atoms.bonds is None:
         raise struc.BadStructureError(
             "The input structure must have an associated BondList"
@@ -852,7 +872,7 @@ def _find_rotatable_bonds(atoms):
     cdef int rem_btype
     cdef bint is_rotatable
     for i in range(all_bond_indices.shape[0]):
-        if is_hydrogen[i]:
+        if is_hydrogen[i] or not atom_mask[i]:
             continue
 
         bonded_heavy_index = -1
