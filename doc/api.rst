@@ -310,7 +310,7 @@ Classes and functions
 
 |
 
-.. autofunction::relax_hydrogen
+.. autofunction:: relax_hydrogen
 
 |
 
