@@ -69,7 +69,7 @@ Hydrogen addition
 By default, hydrogen atoms are added to each applicable heavy atom.
 Residues can be ignored by specifying each of them via the
 ``--ignore``/``-g`` argument.
-For example to ignore the residues with residue ID 5 and 10 from chain ``A``
+To ignore the residues with residue ID 5 and 10 from chain ``A`` for example,
 you can run
 
 .. code-block:: console
@@ -77,7 +77,7 @@ you can run
    $ hydride -g A 5 -g A 10 -i input_structure.pdb -o output_structure.pdb
 
 To add a hydrogen atom to a heavy atom, the fragment for the respective
-heavy atom is searched in the *fragment library* (see :ref:`theory`).
+heavy atom is searched in the *fragment library*.
 The atom names for the added hydrogen atoms are taken from the *name library*
 based on the name of the molecule and the heavy atom.
 If the name library does not support a molecule, the hydrogen atom names
@@ -108,8 +108,7 @@ After hydrogen atoms are placed using proper bond lengths and angles,
 a short relaxation is performed.
 This step reduces steric clashes and forms hydrogen bonds.
 This step can be omitted with the ``--no-relax`` option.
-By default, the relaxation runs until a local energy optimum is reached
-(see :ref:`theory`).
+By default, the relaxation runs until a local energy optimum is reached.
 The number of relaxation steps can be limited with the
 ``--iterations``/``-n`` argument.
 Setting this argument may decrease the runtime of the program but also

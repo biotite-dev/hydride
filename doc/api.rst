@@ -146,7 +146,7 @@ The energy minimization is performed with :func:`relax_hydrogen()`.
    :align: center
 
 :func:`relax_hydrogen()` is able to optimize the position of hydrogen atoms at
-terminal groups (see :ref:`theory`).
+terminal groups.
 In this case it was able to orient the hydrogen atom at the hydroxy group
 towards the nitro group to form a hydrogen bond.
 
@@ -156,7 +156,7 @@ Custom fragment and atom name libraries
 
 :func:`add_hydrogen()` uses a :class:`FragmentLibrary` to find the correct
 number and positions of hydrogen atoms for each heavy atom in the input
-:class:`AtomArray` (see :ref:`theory`) and a :class:`AtomNameLibrary` to find
+:class:`AtomArray` and a :class:`AtomNameLibrary` to find
 the correct atom name (e.g. ``'HA'``).
 The default fragment library (:meth:`FragmentLibrary.standard_library()`)
 contains all fragments from the entire

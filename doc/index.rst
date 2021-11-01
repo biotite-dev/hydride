@@ -30,5 +30,4 @@ organic molecule - from small ligands to large protein complexes.
    intro
    cli
    api
-   theory
    issues
