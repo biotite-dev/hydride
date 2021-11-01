@@ -14,13 +14,12 @@ For each heavy atom, the number of bonded hydrogen atoms and their positions
 are calculated based on molecular geometry of reference molecules in the first
 step, as these reference molecules have known hydrogen positions.
 
-After initial placement of hydrogen atoms, most of their positions should be
-accurate, as they are constrained by the position of the respective bonded
-heavy atom, since the bond lengths and angles are (approximately) constant.
-However, there are exceptions:
-Terminal heavy atoms connected with a single bond to the remaining molecule
-(e.g. a hydroxy or methyl group) have no unambiguous hydrogen positions,
-as they are able to rotate about this single bond (see below).
+Most hydrogen atoms are accurately placed after this step, since the position
+of the bonded heavy atom is fixed and the angles and lengths of the bonds
+connecting the hydrogen and heavy atoms can be considered constant.
+However, heavy atoms that are connected to the rest of the molecule with
+a single bond (e.g. a hydroxy or methyl group) have ambiguous hydrogen
+positions, due to its rotational freedom.
 
 .. image:: /images/rotation_freedom.png
    :width: 800
@@ -38,39 +37,32 @@ bond lengths and angles, but some steric clashes might appear.
 Hydrogen addition
 -----------------
 
-The addition of hydrogen atoms is based on molecular geometries of groups from
-reference molecules.
-For this purpose the reference molecules are compiled into a
-*fragment library*:
+The information about the number and positions of hydrogen atoms for a given
+heavy atom is leveraged from known molecular geometries of reference
+molecules containing hydrogen.
+For example, to be able to add hydrogen atoms to the carbon atom of a methyl
+group, *Hydride* needs a reference molecule containing a methyl group with
+hydrogen.
 
-Each molecule is split into *fragments*, one for each heavy atom in the
-molecule.
-Each fragment consists of
+These reference molecules are compiled into a so called *fragment library*:
+Each reference molecule is segmented into its *fragments*, one fragment
+for each heavy atom in the molecule:
+Each fragment contains the central heavy atom *(blue)* and all heavy atoms
+*(gray)* and hydrogen atoms *(white)* directly bonded to it.
+A fragment is characterized by its *library key*, a combination of
 
-   - the element, charge and coordinates of the central heavy atom *(blue)*,
-   - the coordinates of the bonded hydrogen atoms *(white)*,
-   - the coordinates of the bonded heavy atoms
-     and the order of the bonds to them (*gray*) and
-   - the chirality of the fragment, if applicable.
+   - the element of the central heavy atom,
+   - its charge,
+   - its chirality,
+   - and the order of bonds to connected heavy atoms
 
-These fragments are stored in the aforementioned fragment library,
-a data structure that maps the combination of a fragment's
-
-   - central atom element,
-   - central atom charge,
-   - chirality and
-   - order of bonds to connected heavy atoms
-
-(called *library key* from now on) to
-
-   - the coordinates of heavy atoms connected to the central atom and
-   - the coordinates of hydrogen atoms connected to the central atom.
-
-The coordinates of the fragment's central atom are not saved, as the
-coordinates of the fragment are translated, so that the central atom lies
-always in the coordinate origin.
-Duplicate library keys are ignored *(slightly transparent)* and hence
-will not be part of the fragment library.
+The coordinates for each fragment in the reference molecules are added to the
+fragment library and can thereupon be accessed via its *library key*.
+The coordinates of the fragment's central atom are not saved,
+since the coordinates are translated to place the central heavy atom into
+the coordinate origin. 
+Note, that duplicate library keys are ignored *(slightly transparent)* and
+hence will not be part of the fragment library.
 
 .. figure:: /images/library.png
    :width: 800
@@ -83,22 +75,31 @@ However, *Hydride*'s default fragment library contains fragments from
 all compounds from the
 `Chemical Component Dictionary <https://www.wwpdb.org/data/ccd>`_.
 
-The target molecule, in the shown example we use toluene (*red*), is split into
-fragments in a similar fashion.
-But in contrast to the molecules for the fragment library the created
-fragments of course miss hydrogen atoms.
+The target molecule, in the shown example we use toluene (*red*), is also split
+into fragments.
+But in contrast to the molecules, that were used to create the fragment
+library, these fragments of course miss hydrogen atoms.
 
 .. figure:: /images/target_fragments.png
    :width: 800
 
    *Fragmentation of the target molecule toluene.*
 
-Now for each target molecule fragment *(red)*, or *target fragment* in short,
-the matching fragment from the fragment library *(blue)* is selected.
-Although the target fragment has no hydrogen atoms, this works, because the
-hydrogen atoms are not part of the library key.
+Nevertheless, a library key can also be formed for each of these
+*target fragments*.
+Hence, the fragment library is accessed with this key to obtain a corresponding
+*library fragment* with hydrogen atoms.
 
-In the next step, the target fragment coordinates are translated so that the
+In the next step, the target fragment coordinates are translated to place
+its central atom in the coordinate origin, too.
+Now the library fragment is rotated about the coordinate origin to
+minimize the atom atom distances to the target fragment [1]_ [2]_.
+In the final step the library fragment is moved back to the original position
+of the target fragment using the reversed translation vector.
+The hydrogen coordinates in this transformed library fragment *(encircled)*
+are the desired coordinates for the target fragment.
+
+
 central atom lies in the coordinate origin, as does the library fragment.
 Then the library fragment is superimposed onto the target fragment by rotation
 about the coordinate origin [1]_ [2]_.
@@ -107,20 +108,21 @@ will minimize the *root-mean-square deviation* between the fragments.
 In the final step the library fragment is moved back to the original position
 of the target fragment simply by applying the reversed translation vector.
 The hydrogen coordinates of the transformed library fragment *(encircled)* are
-the desired coordinates for the target fragment.
+the wanted hydrogen coordinates for this target fragment.
 
 .. figure:: /images/superimposition.png
    :width: 800
 
    *Superimposition of a library fragment onto a target fragment.*
 
-If the library does not contain a match for a target molecule fragment, the
-algorithm is unable to assign hydrogen atoms to this central atom.
-Hence, it is desirable to have a large fragment library to cover a broad range
-of different fragments.
+If the library does not contain an entry for the library key of target
+fragment, the algorithm is unable to predict hydrogen atoms for this heavy
+atom.
+Therefore, the default fragment library of *Hydride* contains a large set
+of reference molecules, covering all molecules appearing in PDB entries.
 
-After this procedure is finished for each target fragment, the obtained
-hydrogen positions are adopted by the target molecule.
+This process is performed for each target fragment.
+The obtained hydrogen coordinates are assumed for the target molecule.
 *(The hydrogen position of the previous figure is encircled again.)*
 
 .. figure:: /images/position_adoption.png
@@ -135,8 +137,15 @@ Hydrogen relaxation
 Energy function
 ^^^^^^^^^^^^^^^
 
-After initial hydrogen atom placement the position of hydrogen connected to
-terminal heavy atoms can be further optimized, i.e. the energy minimized,
+Now the position of hydrogen atoms connected to terminal heavy atoms can
+be further optimized, to reduce steric clashes and form hydrogen bonds for
+example.
+More precisely, the relaxation aims to minimize an energy function :math:`V`
+based on non-bonded interaction terms from the *Universal Force Field* (UFF) [3]_.
+
+
+
+, i.e. the energy minimized,
 in order to reduce steric clashes and form hydrogen bonds for example.
 
 *Hydride* uses an energy function :math:`V` based on the non-bonded
