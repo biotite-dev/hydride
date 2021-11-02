@@ -2,7 +2,7 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
-__version__ = "0.1.0"
+__version__ = "1.0.0"
 __name__ = "hydride"
 __author__ = "Jacob Anter, Patrick Kunzmann"
 
