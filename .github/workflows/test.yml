@@ -49,7 +49,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python }}
       - name: Installing dependencies
-        run: conda install -c conda-forge numpy=$NUMPY_VERSION "cython>=0.29" "biotite=0.28" "msgpack-python=1.0"
+        run: conda install -c conda-forge numpy=$NUMPY_VERSION "cython>=0.29" "biotite=0.28" msgpack-python pytst
         env:
           NUMPY_VERSION: ${{ matrix.numpy }}
       - name: Building distribution
