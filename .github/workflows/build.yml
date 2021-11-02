@@ -60,7 +60,7 @@ jobs:
           auto-update-conda: true
           python-version: ${{ matrix.python }}
       - name: Installing dependencies
-        run: conda install -c conda-forge numpy=$NUMPY_VERSION "cython>=0.29" "biotite=0.28" "msgpack-python=1.0"
+        run: conda install -c conda-forge numpy=$NUMPY_VERSION "cython>=0.29" "biotite=0.28" "msgpack-python>=1.0"
         env:
           NUMPY_VERSION: ${{ matrix.numpy }}
       - if: ${{ matrix.os == 'ubuntu-latest' }}
@@ -97,7 +97,7 @@ jobs:
           auto-update-conda: true
           python-version: '3.9'
       - name: Installing dependencies
-        run: conda install -c conda-forge sphinx cython numpy
+        run: conda install -c conda-forge sphinx cython numpy biotite
       - name: Building documentation
         run: sphinx-build ./doc ./build/doc
       - name: Zipping documentation

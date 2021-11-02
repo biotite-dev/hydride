@@ -20,8 +20,8 @@ from os import listdir, makedirs
 import sys
 
 doc_path = dirname(realpath(__file__))
-# Include gecos/src in PYTHONPATH
-# in order to import the 'gecos' package
+# Include hydride/src in PYTHONPATH
+# in order to import the 'hydride' package
 package_path = join(dirname(doc_path), "src")
 sys.path.insert(0, package_path)
 import hydride
