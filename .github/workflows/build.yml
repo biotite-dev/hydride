@@ -76,7 +76,7 @@ jobs:
         run: rename 's/linux/manylinux1/g' dist/*.whl
       - uses: actions/upload-artifact@v2
         with:
-          name: Biotite distribution
+          name: Hydride distribution
           path: dist//*
           if-no-files-found: error
 
@@ -104,6 +104,6 @@ jobs:
         run: cd .//build; zip -r doc.zip doc; cd ..
       - uses: actions/upload-artifact@v2
         with:
-          name: Ammolite documentation
+          name: Hydride documentation
           path: build//doc.zip
           if-no-files-found: error
