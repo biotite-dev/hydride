@@ -28,7 +28,7 @@ htmlcov
 *.pyd
 
 # Ignore potential directory created during install
-biotite.egg-info
+*.egg-info
 
 # Ignore IntelliJ IDEA directory and project files
 .idea
