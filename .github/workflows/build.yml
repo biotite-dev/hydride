@@ -97,7 +97,7 @@ jobs:
           auto-update-conda: true
           python-version: '3.9'
       - name: Installing dependencies
-        run: conda install -c conda-forge sphinx cython numpy biotite
+        run: conda install -c conda-forge sphinx cython numpy numpydoc biotite
       - name: Building documentation
         run: sphinx-build ./doc ./build/doc
       - name: Zipping documentation
