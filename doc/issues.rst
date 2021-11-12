@@ -5,6 +5,26 @@
 Common issues
 =============
 
+A warning about unavailable parameters for electronegativity calculation is printed
+-----------------------------------------------------------------------------------
+
+The relaxation of hydrogen atoms requires partial charges for each atom.
+If they are not explicitly given via the Python API, they are automatically
+calculated using the PEOE method.
+However, this method requires element-specific parameters, which are only
+available for a limited set of elements.
+If these parameters are missing for an element the following warning is printed
+
+.. code-block:: none
+
+   Parameters required for computation of electronegativity aren't available
+   for the following atoms: <element>. Their electronegativity is given as NaN.
+
+As consequence the formal charge is used for such atoms instead of a proper
+partial charge in the relaxation step.
+This warning has no effect on the hydrogen addition. 
+
+
 A group has an unexpected number of hydrogen atoms, e.g. a carboxy group is protonated
 --------------------------------------------------------------------------------------
 
