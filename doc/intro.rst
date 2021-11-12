@@ -89,8 +89,8 @@ This way *Hydride* can be used in a chain of commands.
 All command line parameters and their usage is listed in depth in
 :ref:`cli`.
 
-Often structure file miss proper formal charges values for each atom,
-leading to false additions of hydrogen atoms, for example protonated carboy
+Often structure files miss proper formal charge values for each atom,
+leading to false additions of hydrogen atoms, for example protonated carboxy
 groups.
 This problem can be mitigated at least for amino acids by recalculating
 formal charges at a given pH value.
