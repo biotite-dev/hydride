@@ -211,11 +211,11 @@ Usually, the relaxation is fast and accurate enough for most applications.
 However, the user is able to adjust some parameters to shift the
 speed-accuracy-balance to either side.
 
-By default, :func:`relax_hydrogen()` until the energy of the conformation does
-not improve anymore.
+By default, :func:`relax_hydrogen()` runs until the energy of the conformation
+does not improve anymore.
 However, the maximum number of iterations can also be given with the
 ``iterations`` parameter.
-If the number relaxation steps reaches this value, the relaxation terminates
+If the number of relaxation steps reaches this value, the relaxation terminates
 regardless of whether an energy minimum is attained. 
 
 The ``angle_increment`` parameter controls the angle by which each rotatable
