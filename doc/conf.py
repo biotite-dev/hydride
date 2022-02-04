@@ -64,8 +64,7 @@ html_theme = "alabaster"
 html_static_path = ["static"]
 html_css_files = [
     "hydride.css",
-    "https://fonts.googleapis.com/css?" \
-        "family=Crete+Round|Fira+Sans|&display=swap",
+    "fonts.css"
 ]
 html_favicon = "static/assets/hydride_icon_32p.png"
 htmlhelp_basename = "HydrideDoc"
