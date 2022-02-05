@@ -51,7 +51,7 @@ structure file.
 Python API
 ----------
 
-*Hydride* also provides a Python API to add hydrogen atoms to `AtomArray`
+*Hydride* also provides a Python API to add hydrogen atoms to ``AtomArray``
 objects from `Biotite <https://www.biotite-python.org/>`_.
 
 .. code-block:: python
