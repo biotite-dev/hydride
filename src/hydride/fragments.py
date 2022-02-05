@@ -10,7 +10,7 @@ from os.path import join, dirname, abspath
 import warnings
 import pickle
 from biotite.structure.error import BadStructureError
-from biotite.structure import BondType
+from biotite.structure import BondType, displacement
 import numpy as np
 
 
@@ -132,7 +132,7 @@ class FragmentLibrary:
                 )
 
 
-    def calculate_hydrogen_coord(self, atoms, mask=None):
+    def calculate_hydrogen_coord(self, atoms, mask=None, box=None):
         """
         Estimate the hydrogen coordinates for each atom in a given
         structure/molecule.
@@ -166,10 +166,10 @@ class FragmentLibrary:
 
         # The target and reference heavy atom coordinates
         # for each fragment
-        sub_frag_center_coord = np.zeros(
+        tar_frag_center_coord = np.zeros(
             (atoms.array_length(), 3), dtype=np.float32
         )
-        sub_frag_heavy_coord = np.zeros(
+        tar_frag_heavy_coord = np.zeros(
             (atoms.array_length(), 3, 3), dtype=np.float32
         )
         ref_frag_heavy_coord = np.zeros(
@@ -177,6 +177,7 @@ class FragmentLibrary:
         )
         # The amount of hydrogens varies for each fragment
         # -> padding with NaN
+        # The maximum number of bond hydrogen atoms is 4
         ref_frag_hydrogen_coord = np.full(
             (atoms.array_length(), 4, 3), np.nan, dtype=np.float32
         )
@@ -191,8 +192,8 @@ class FragmentLibrary:
                 central_element, central_charge, stereo, bond_types,
                 center_coord, heavy_coord, _
             ) = fragment
-            sub_frag_center_coord[i] = center_coord
-            sub_frag_heavy_coord[i] = heavy_coord
+            tar_frag_center_coord[i] = center_coord
+            tar_frag_heavy_coord[i] = heavy_coord
             # The hydrogen_coord can be ignored:
             # In the target structure are no hydrogen atoms
             hit = self._frag_dict.get(
@@ -213,27 +214,39 @@ class FragmentLibrary:
         # so the central heavy atom is at origin
         # This has already been done for the reference atoms
         # in the 'add_molecule()' method
-        sub_frag_heavy_coord -= sub_frag_center_coord[:, np.newaxis, :]
+        if box is not None:
+            # Find shortest possible displacement vector for each heavy
+            # atom according to minimum image convention
+            if box is True:
+                box = atoms.box
+            else:
+                # Box vectors are given as array-like object
+                box = np.asarray(box)
+        tar_frag_heavy_coord = displacement(
+            tar_frag_center_coord[:, np.newaxis, :], tar_frag_heavy_coord,
+            box
+        )
+
         # Get the rotation matrix required for superimposition of
         # the reference coord to the target coord 
         matrices = _get_rotation_matrices(
-            sub_frag_heavy_coord, ref_frag_heavy_coord
+            tar_frag_heavy_coord, ref_frag_heavy_coord
         )
         # Rotate the reference hydrogen atoms, so they fit the
         # target heavy atoms
-        sub_frag_hydrogen_coord = _rotate(ref_frag_hydrogen_coord, matrices)
+        tar_frag_hydrogen_coord = _rotate(ref_frag_hydrogen_coord, matrices)
         # Translate hydrogen atoms to the position of the
         # non-centered central heavy target atom
-        sub_frag_hydrogen_coord += sub_frag_center_coord[:, np.newaxis, :]
+        tar_frag_hydrogen_coord += tar_frag_center_coord[:, np.newaxis, :]
         
         # Turn into list and remove NaN paddings
-        sub_frag_hydrogen_coord = [
+        tar_frag_hydrogen_coord = [
             # If the x-coordinate is NaN it is expected that
             # y and z are also NaN
-            coord[~np.isnan(coord[:, 0])] for coord in sub_frag_hydrogen_coord
+            coord[~np.isnan(coord[:, 0])] for coord in tar_frag_hydrogen_coord
         ]
 
-        return sub_frag_hydrogen_coord
+        return tar_frag_hydrogen_coord
 
 
 def _fragment(atoms, mask=None):

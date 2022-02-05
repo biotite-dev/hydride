@@ -12,7 +12,8 @@ from .fragments import FragmentLibrary
 from .names import AtomNameLibrary
 
 
-def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None):
+def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None,
+                 box=None):
    """
    Add hydrogen atoms to a structure.
 
@@ -28,7 +29,8 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None):
       The structure must have an associated :class:`BondList`.
       The structure must also include the *charge* annotation array,
       depicting the formal charge for each atom.
-      The structure must not have any annotated hydrogen atoms, yet.
+      The structure must not have any annotated hydrogen atoms
+      (in the region covered by `mask`), yet.
    mask : ndarray, shape=(n,), dtype=bool, optional
       A boolean mask that is true for each atom, where hydrogen atoms
       should be added.
@@ -70,7 +72,7 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None):
          "Input structure already contains hydrogen atoms"
       )
    
-   hydrogen_coord = fragment_library.calculate_hydrogen_coord(atoms, mask)
+   hydrogen_coord = fragment_library.calculate_hydrogen_coord(atoms, mask, box)
 
    # Count number of hydrogen atoms to be added
    count = 0

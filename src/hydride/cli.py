@@ -125,9 +125,15 @@ def main(args=None):
     parser.add_argument(
         "--charges", "-c", type=float, metavar="PH",
         help="Recalculate the charges of atoms in amino acids based on the "
-             "given pH value."
+             "given pH value. "
              "This estimation does not take the surrounding amino acids into "
              "account."
+    )
+    parser.add_argument(
+        "--pbc", "-p", action="store_true",
+        help="Set hydrogen addition and relaxation aware to periodic boundary "
+             "conditions. "
+             "The box is read from the input structure file."
     )
     
     args = parser.parse_args(args=args)
@@ -212,13 +218,18 @@ def run(args):
                 )
             input_mask &= ~removal_mask
     
-    model, _ = add_hydrogen(model, input_mask, frag_library, name_library)
+    box = True if args.pbc else None 
+
+    model, _ = add_hydrogen(
+        model, input_mask, frag_library, name_library, box
+    )
     if not args.no_relax:
         if args.iterations is not None and args.iterations < 0:
             raise UserInputError("The number of iterations must be positive")
         model.coord = relax_hydrogen(
             model, args.iterations,
-            angle_increment=np.deg2rad(args.angle_increment)
+            angle_increment=np.deg2rad(args.angle_increment),
+            box=box
         )
     
     try:
