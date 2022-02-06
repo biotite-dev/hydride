@@ -180,6 +180,10 @@ class MinimumFinder:
         their interaction
         (:math:`V_\text{el}` and :math:`V_\text{nb}`) is not
         calculated.
+    box : ndarray, shape=(3,3), dtype=float, optional
+        If this parameter is set, periodic boundary conditions are
+        taken into account (minimum-image convention), based on
+        the box vectors given with this parameter.
     
     See also
     --------
@@ -591,6 +595,12 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
         interactions.
         By default the charges are calculated using
         :func:`biotite.structure.partial_charges()`.
+    box : bool or array-like, shape=(3,3), dtype=float, optional
+        If this parameter is set, periodic boundary conditions are
+        taken into account (minimum-image convention), based on
+        the box vectors given with this parameter.
+        If `box` is set to true, the box vectors are taken from the
+        ``box`` attribute of `atoms` instead.
     
     Returns
     -------

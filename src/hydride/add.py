@@ -46,6 +46,12 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None,
       containing atom names for the most prominent molecules including
       amino acids and nucleotides.
       For all other molecules the hydrogen atom names are guessed.
+   box : bool or array-like, shape=(3,3), dtype=float, optional
+      If this parameter is set, periodic boundary conditions are
+      taken into account (minimum-image convention), based on
+      the box vectors given with this parameter.
+      If `box` is set to true, the box vectors are taken from the
+      ``box`` attribute of `atoms` instead.
 
    Returns
    -------

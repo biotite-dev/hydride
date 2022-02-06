@@ -150,6 +150,12 @@ class FragmentLibrary:
             corresponsing hydrogen atom positions should be calculated.
             By default, hydrogen atoms are calculated for all applicable
             atoms.
+        box : bool or array-like, shape=(3,3), dtype=float, optional
+            If this parameter is set, periodic boundary conditions are
+            taken into account (minimum-image convention), based on
+            the box vectors given with this parameter.
+            If `box` is set to true, the box vectors are taken from the
+            ``box`` attribute of `atoms` instead.
 
         Returns
         -------
