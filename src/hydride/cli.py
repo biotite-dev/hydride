@@ -225,6 +225,8 @@ def run(args):
                 "required for handling periodic boundary conditions"
             )
         box = True
+    else:
+        box=None
 
     model, _ = add_hydrogen(
         model, input_mask, frag_library, name_library, box
