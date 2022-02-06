@@ -218,7 +218,13 @@ def run(args):
                 )
             input_mask &= ~removal_mask
     
-    box = True if args.pbc else None 
+    if args.pbc:
+        if model.box is None:
+            raise UserInputError(
+                "The input structure file does not provide box vectors "
+                "required for handling periodic boundary conditions"
+            )
+        box = True
 
     model, _ = add_hydrogen(
         model, input_mask, frag_library, name_library, box
