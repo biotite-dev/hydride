@@ -224,6 +224,8 @@ class FragmentLibrary:
             # Find shortest possible displacement vector for each heavy
             # atom according to minimum image convention
             if box is True:
+                if atoms.box is None:
+                    raise ValueError("Input structure has no associated box")
                 box = atoms.box
             else:
                 # Box vectors are given as array-like object

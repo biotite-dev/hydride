@@ -681,6 +681,8 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
     
     if box is not None:
         if box is True:
+            if atoms.box is None:
+                raise ValueError("Input structure has no associated box")
             box = atoms.box
         else:
             # Box vectors are given as array-like object
