@@ -89,8 +89,7 @@ While the default fragment library comprise all molecules from the
 `Chemical Component Dictionary <https://www.wwpdb.org/data/ccd>`_,
 the default name library only contains names for the most common residues -
 amino acids and nucleotides.
-
-If the fragment may miss fitting fragments for your molecule
+If the fragment library may miss fitting fragments for your molecule
 (which rarely happens) or you want to ensure canonical hydrogen atom naming
 for you molecule, can add this molecule (including hydrogen atoms) to both
 libraries by providing a path to a corresponding structure file via
@@ -99,6 +98,11 @@ Analogous to the input and output file parameters, the file format can be
 specified with ``--fragformat``/``-f``.
 Note that the file must contain proper bond information and correct formal
 charges, so effectively a *MMTF*, *MOL* and *SDF* must be supplied.
+
+By default, *Hydride* does not consider periodic boundary conditions,
+as they appear e.g. in MD simulations.
+This can be changed with the ``--pbc``/``-p`` option.
+The required box vectors are read from the input structure file.
 
 
 Relaxation

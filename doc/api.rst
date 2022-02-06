@@ -204,6 +204,28 @@ template molecules and used in :func:`add_hydrogen()`.
     hydride.add_hydrogen(molecule, name_library=library)
 
 
+Handling periodic boundary conditions
+-------------------------------------
+
+By default, :func:`add_hydrogen()` and :func:`relax_hydrogen()` do not take
+periodic boundary conditions into account, as they appear e.g. in MD
+simulations.
+Consequently, interactions over the periodic boundary are not taken into
+account and, more importantly, hydrogen atoms are not placed correctly, if the
+molecule is divided by the boundary.
+To tell *Hydride* to consider periodic boundary conditions the `box` parameter
+needs to be provided.
+The value can be either a an array of the three box vectors or ``True``, in
+which case the box is taken from the input structure.
+
+.. code-block:: python
+
+    molecule, _ = hydride.add_hydrogen(molecule, box=True)
+    molecule.coord = hydride.relax_hydrogen(molecule, box=True)
+
+Note that this slows down the addition and relaxation procedure.
+
+
 Tweaking relaxation speed and accuracy
 --------------------------------------
 
