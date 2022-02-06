@@ -31,6 +31,10 @@ def input_file(request):
         mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
     model = model[model.element != "H"]
+    
+    # Add box for test of '--pbc' option
+    model.box = np.identity(3) * 100
+    
     temp_file = tempfile.NamedTemporaryFile(
         "w", suffix=f".{request.param}", delete=False
     )
