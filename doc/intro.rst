@@ -35,6 +35,9 @@ In a second step *Hydride* relaxes the dihedral angles of terminal heavy atoms
 carrying hydrogen atoms.
 This method minimizes steric clashes and restores hydrogen bonds.
 
+For an in-depth explanation of the underlying algorithm please refer to
+the `journal article <https://doi.org/10.1186/s13015-022-00215-x>`_.
+
 Installation
 ------------
 
