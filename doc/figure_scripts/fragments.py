@@ -80,6 +80,6 @@ def visualize_fragments(molecule, mol_name, color):
             ammolite.cmd.png(f"{fragment_name}.png", *PNG_SIZE)
             ammolite.cmd.disable(fragment_name)
 
-visualize_fragments(toluene_heavy, "toluene", COLORS["O"])
-visualize_fragments(benzene,       "benzene", COLORS["N"])
-visualize_fragments(butylene,        "butylene",  COLORS["N"])
+visualize_fragments(toluene_heavy, "toluene",  COLORS["O"])
+visualize_fragments(benzene,       "benzene",  COLORS["N"])
+visualize_fragments(butylene,      "butylene", COLORS["N"])
