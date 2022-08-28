@@ -174,7 +174,7 @@ setup(
     author = "The 'Hydride' contributors",
     license = "BSD 3-Clause",
     classifiers = [
-        "Development Status :: 1 - Planning",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
