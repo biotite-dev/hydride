@@ -73,7 +73,9 @@ except ValueError:
 
 def get_extensions():
     ext_sources = []
-    for dirpath, dirnames, filenames in os.walk(normpath("src/hydride")):
+    for dirpath, dirnames, filenames in os.walk(
+        normpath(join("src", "hydride"))
+    ):
         for filename in fnmatch.filter(filenames, '*.c'):
             ext_sources.append(os.path.join(dirpath, filename))
     ext_names = [source
