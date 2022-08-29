@@ -146,7 +146,7 @@ The energy minimization is performed with :func:`relax_hydrogen()`.
    :align: center
 
 :func:`relax_hydrogen()` is able to optimize the position of hydrogen atoms at
-terminal groups (see :ref:`theory`).
+terminal groups.
 In this case it was able to orient the hydrogen atom at the hydroxy group
 towards the nitro group to form a hydrogen bond.
 
@@ -156,7 +156,7 @@ Custom fragment and atom name libraries
 
 :func:`add_hydrogen()` uses a :class:`FragmentLibrary` to find the correct
 number and positions of hydrogen atoms for each heavy atom in the input
-:class:`AtomArray` (see :ref:`theory`) and a :class:`AtomNameLibrary` to find
+:class:`AtomArray` and a :class:`AtomNameLibrary` to find
 the correct atom name (e.g. ``'HA'``).
 The default fragment library (:meth:`FragmentLibrary.standard_library()`)
 contains all fragments from the entire
@@ -204,6 +204,28 @@ template molecules and used in :func:`add_hydrogen()`.
     hydride.add_hydrogen(molecule, name_library=library)
 
 
+Handling periodic boundary conditions
+-------------------------------------
+
+By default, :func:`add_hydrogen()` and :func:`relax_hydrogen()` do not take
+periodic boundary conditions into account, as they appear e.g. in MD
+simulations.
+Consequently, interactions over the periodic boundary are not taken into
+account and, more importantly, hydrogen atoms are not placed correctly, if the
+molecule is divided by the boundary.
+To tell *Hydride* to consider periodic boundary conditions the `box` parameter
+needs to be provided.
+The value can be either a an array of the three box vectors or ``True``, in
+which case the box is taken from the input structure.
+
+.. code-block:: python
+
+    molecule, _ = hydride.add_hydrogen(molecule, box=True)
+    molecule.coord = hydride.relax_hydrogen(molecule, box=True)
+
+Note that this slows down the addition and relaxation procedure.
+
+
 Tweaking relaxation speed and accuracy
 --------------------------------------
 
@@ -211,11 +233,11 @@ Usually, the relaxation is fast and accurate enough for most applications.
 However, the user is able to adjust some parameters to shift the
 speed-accuracy-balance to either side.
 
-By default, :func:`relax_hydrogen()` until the energy of the conformation does
-not improve anymore.
+By default, :func:`relax_hydrogen()` runs until the energy of the conformation
+does not improve anymore.
 However, the maximum number of iterations can also be given with the
 ``iterations`` parameter.
-If the number relaxation steps reaches this value, the relaxation terminates
+If the number of relaxation steps reaches this value, the relaxation terminates
 regardless of whether an energy minimum is attained. 
 
 The ``angle_increment`` parameter controls the angle by which each rotatable
@@ -310,7 +332,7 @@ Classes and functions
 
 |
 
-.. autofunction::relax_hydrogen
+.. autofunction:: relax_hydrogen
 
 |
 

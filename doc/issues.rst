@@ -5,12 +5,32 @@
 Common issues
 =============
 
+A warning about unavailable parameters for electronegativity calculation is printed
+-----------------------------------------------------------------------------------
+
+The relaxation of hydrogen atoms requires partial charges for each atom.
+If they are not explicitly given via the Python API, they are automatically
+calculated using the PEOE method.
+However, this method requires element-specific parameters, which are only
+available for a limited set of elements.
+If these parameters are missing for an element the following warning is printed
+
+.. code-block:: none
+
+   Parameters required for computation of electronegativity aren't available
+   for the following atoms: <element>. Their electronegativity is given as NaN.
+
+As consequence the formal charge is used for such atoms instead of a proper
+partial charge in the relaxation step.
+This warning has no effect on the hydrogen addition. 
+
+
 A group has an unexpected number of hydrogen atoms, e.g. a carboxy group is protonated
 --------------------------------------------------------------------------------------
 
-Probably, the formal charges for the concerning heavy atom is incorrect.
+Probably, the formal charge for the concerning heavy atom is incorrect.
 If the formal charge of the oxygen atom of a carboxy group is set to 0, a
-protonated form is assumned.
+protonated form is assumed.
 
 The reason for incorrect charges is simply that the structure files contain
 improper charge values.
@@ -18,7 +38,7 @@ For amino acids the charges can be corrected using the ``--charges``/``-c``
 parameter from the *Hydride* command line interface, or via the
 :func:`estimate_amino_acid_charges()` function from the Python API.
 For all other molecules, this problem can be solved by fixing the input
-structure file or by editing the ``charges`` annotation of the input
+structure file or by editing the ``charge`` attribute of the input
 :class:`AtomArray` in the Python API.
 
 
@@ -27,9 +47,12 @@ A fragment is missing for a heavy atom and no hydrogen atom can be assigned to i
 
 Although, most molecules are covered by the fragment library, some uncommon
 groups within a molecule may be not.
+If this happens, *Hydride* will give you a warning
+However, most of these exotic groups do not bear hydrogen atoms,
+so you can ignore the warning in those cases.
 
-In this case you can add a *template* of such a molecule to the fragment
-library.
+If an expected hydrogen atom is missing, you can add a *template* of such a
+molecule to the fragment library.
 This template is a molecular model of this molecule containing hydrogen atoms.
 Such a template structure file for a molecule can be e.g. downloaded from a
 ligand database.

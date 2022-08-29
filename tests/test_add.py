@@ -2,6 +2,7 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
+import itertools
 import glob
 from os.path import join
 import pytest
@@ -10,30 +11,33 @@ import biotite.structure as struc
 import biotite.structure.info as info
 import biotite.structure.io.mmtf as mmtf
 import hydride
-from .util import data_dir
+from .util import data_dir, place_over_periodic_boundary
 
 
-@pytest.mark.parametrize("res_name", [
-    "BNZ", # Benzene
-    "BZF", # Benzofuran
-    "IND", # indole
-    "PZO", # Pyrazole
-    "BZI", # Benzimidazole
-    "LOM", # Thiazole
-    "P1R", # Pyrimidine
-    "ISQ", # Isoquinoline
-    "NPY", # Naphthalene
-    "AN3", # Anthracene
-    "0PY", # Pyridine
-    "4FT", # Phthalazine
-    "URA", # Uracil
-    "CHX", # Cyclohexane
-    "CEJ", # 1,3-Cyclopentanedione
-    "CN",  # Hydrogen cyanide
-    "11X", # N-pyridin-3-ylmethylaniline
-    "ANL", # Aniline
-])
-def test_hydrogen_positions(res_name):
+@pytest.mark.parametrize("res_name, periodic_dim", itertools.product(
+    [
+        "BNZ", # Benzene
+        "BZF", # Benzofuran
+        "IND", # indole
+        "PZO", # Pyrazole
+        "BZI", # Benzimidazole
+        "LOM", # Thiazole
+        "P1R", # Pyrimidine
+        "ISQ", # Isoquinoline
+        "NPY", # Naphthalene
+        "AN3", # Anthracene
+        "0PY", # Pyridine
+        "4FT", # Phthalazine
+        "URA", # Uracil
+        "CHX", # Cyclohexane
+        "CEJ", # 1,3-Cyclopentanedione
+        "CN",  # Hydrogen cyanide
+        "11X", # N-pyridin-3-ylmethylaniline
+        "ANL", # Aniline
+    ],
+    [None, 0, 1, 2]
+))
+def test_hydrogen_positions(res_name, periodic_dim):
     """
     Test whether the assigned hydrogen positions approximately match
     the original hydrogen positions for a given molecule.
@@ -50,12 +54,29 @@ def test_hydrogen_positions(res_name):
     is added to.
     """
     TOLERANCE = 0.1
+    BOX_SIZE = 100
 
-    library = hydride.FragmentLibrary.standard_library()
     ref_molecule = info.residue(res_name)
 
+    if periodic_dim is None:
+        box = None
+    else:
+        box = np.identity(3) * BOX_SIZE
+        # Move molecule to the border of the box
+        # to 'cut' it in half due to PBC
+        # The direction is determined from 'periodic_dim'
+        ref_molecule = place_over_periodic_boundary(
+            ref_molecule, periodic_dim, BOX_SIZE
+        )
+
     test_molecule = ref_molecule[ref_molecule.element != "H"]
-    test_molecule, _ = hydride.add_hydrogen(test_molecule)
+    test_molecule, _ = hydride.add_hydrogen(test_molecule, box=box)
+
+    if periodic_dim is not None:
+        # Remove PBC again
+        ref_molecule.coord = struc.remove_pbc_from_coord(
+            ref_molecule.coord, box
+        )
 
     for category in ref_molecule.get_annotation_categories():
         if category == "atom_name":
@@ -89,6 +110,7 @@ def test_hydrogen_positions(res_name):
             assert np.max(struc.distance(
                 test_molecule.coord[test_h_indices],
                 ref_molecule.coord[ref_h_indices],
+                box=box
             )) <= TOLERANCE
         elif len(ref_h_indices) == 2:
             # Heavy atom has 2 hydrogen atoms
@@ -98,6 +120,7 @@ def test_hydrogen_positions(res_name):
                 np.max(struc.distance(
                     test_molecule.coord[test_h_indices],
                     ref_molecule.coord[ref_h_indices][::order],
+                    box=box
                 ))
                 for order in (1, -1)
             ])
@@ -124,11 +147,46 @@ def test_molecule_without_hydrogens():
     assert test_molecule == ref_molecule
 
 
-@pytest.mark.parametrize("fill_value", [False, True])
-def test_atom_mask(fill_value):
+def test_atom_mask():
     """
-    Check whether the input atom mask works properly by testing extreme
-    cases.
+    Test atom mask usage by hydrogenating in two steps:
+    Firstly one random half is masked, secondly the other half is
+    masked.
+    After reordering the atoms in the standard way, the result should be
+    equal to hydrogenating in a single step.
+    """
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    heavy_atoms = atoms[atoms.element != "H"]
+
+    ref_atoms, _ = hydride.add_hydrogen(heavy_atoms)
+    ref_atoms = ref_atoms[info.standardize_order(ref_atoms)]
+
+    # Hydrogenate the first random half of the molecule
+    random_mask = np.random.choice([False, True], heavy_atoms.array_length())
+    half_hydrogenated, orig_mask = hydride.add_hydrogen(
+        heavy_atoms, random_mask
+    )
+    # Hydrogenate the second half by inverting mask
+    # Special handling due to additional hydrogen atoms
+    # after first hydrogenation
+    inv_random_mask = np.zeros(half_hydrogenated.array_length(), bool)
+    inv_random_mask[orig_mask] = ~random_mask
+    test_atoms, _ = hydride.add_hydrogen(
+        half_hydrogenated, inv_random_mask
+    )
+    test_atoms = test_atoms[info.standardize_order(test_atoms)]
+
+    assert test_atoms == ref_atoms
+
+
+@pytest.mark.parametrize("fill_value", [False, True])
+def test_atom_mask_extreme_case(fill_value):
+    """
+    Check whether the input atom mask works properly by testing the
+    cases, where no atom and each atom is masked, respectively.
     """
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
     atoms = mmtf.get_structure(

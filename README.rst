@@ -47,3 +47,14 @@ structure file.
 .. code-block:: console
 
    $ hydride -i input_structure.pdb -o output_structure.pdb
+
+Python API
+----------
+
+*Hydride* also provides a Python API to add hydrogen atoms to ``AtomArray``
+objects from `Biotite <https://www.biotite-python.org/>`_.
+
+.. code-block:: python
+
+   atom_array, _ = hydride.add_hydrogen(atom_array)
+   atom_array.coord = hydride.relax_hydrogen(atom_array)

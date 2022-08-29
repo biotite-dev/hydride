@@ -10,17 +10,13 @@ missing, for examples structures that were determined via low-resolution X-ray
 diffraction.
 Instead of using force field parameters to place hydrogen atoms at their
 optimum bond angle and distance, it uses a large *fragment library* to perform
-this task (see :ref:`theory`).
+this task.
 This allows *Hydride* to assign hydrogen atoms to a broad range of molecules.
 
-For each heavy atom, i.e. an atom that is not hydrogen, a fragment is created.
-This fragment contains the following information:
-
-   - The element of the heavy atom
-   - The charge of the heavy atom
-   - The enantiomer, if applicable
-   - The number of bonds and bond orders to connected heavy atoms
-
+For each heavy atom in a molecule, i.e. an atom that is not hydrogen,
+a fragment is created.
+Each fragment contains the central heavy atom and all heavy atoms
+directly bonded to it.
 This fragment is searched in the fragment library, that contains for each
 fragment the number of bonded hydrogen atoms and their positions relative to
 the position of the heavy atom and its bond partners.
@@ -38,6 +34,9 @@ After the hydrogen atoms are added, the conformation is not optimal, yet.
 In a second step *Hydride* relaxes the dihedral angles of terminal heavy atoms
 carrying hydrogen atoms.
 This method minimizes steric clashes and restores hydrogen bonds.
+
+For an in-depth explanation of the underlying algorithm please refer to
+the `journal article <https://doi.org/10.1186/s13015-022-00215-x>`_.
 
 Installation
 ------------
@@ -93,8 +92,8 @@ This way *Hydride* can be used in a chain of commands.
 All command line parameters and their usage is listed in depth in
 :ref:`cli`.
 
-Often structure file miss proper formal charges values for each atom,
-leading to false additions of hydrogen atoms, for example protonated carboy
+Often structure files miss proper formal charge values for each atom,
+leading to false additions of hydrogen atoms, for example protonated carboxy
 groups.
 This problem can be mitigated at least for amino acids by recalculating
 formal charges at a given pH value.
@@ -136,3 +135,9 @@ for the use case.
 Conversely, :func:`add_hydrogen()` does not need to be called if the
 :class:`AtomArray` already contains hydrogen atoms, but merely steric clashes
 should be resolved.
+
+Additional information
+----------------------
+
+In-depth explanation of the underlying algorithm will be available in 
+the upcoming journal article. 

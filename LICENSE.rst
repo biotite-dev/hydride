@@ -1,7 +1,7 @@
 BSD 3-Clause License
 --------------------
 
-Copyright 2020, The 'Hydride' contributors
+Copyright 2020-2021, The 'Hydride' contributors
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without modification,

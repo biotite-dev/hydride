@@ -176,7 +176,7 @@ setup(
     author = "The 'Hydride' contributors",
     license = "BSD 3-Clause",
     classifiers = [
-        "Development Status :: 1 - Planning",
+        "Development Status :: 5 - Production/Stable",
         "Intended Audience :: Developers",
         "Intended Audience :: Science/Research",
         "License :: OSI Approved :: BSD License",
@@ -207,7 +207,7 @@ setup(
     
     install_requires = ["biotite >= 0.28",
                         "numpy >= 1.13"],
-    python_requires = ">=3.6",
+    python_requires = ">=3.7",
     
     tests_require = ["pytest"],
 )

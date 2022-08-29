@@ -69,7 +69,7 @@ Hydrogen addition
 By default, hydrogen atoms are added to each applicable heavy atom.
 Residues can be ignored by specifying each of them via the
 ``--ignore``/``-g`` argument.
-For example to ignore the residues with residue ID 5 and 10 from chain ``A``
+To ignore the residues with residue ID 5 and 10 from chain ``A`` for example,
 you can run
 
 .. code-block:: console
@@ -77,7 +77,7 @@ you can run
    $ hydride -g A 5 -g A 10 -i input_structure.pdb -o output_structure.pdb
 
 To add a hydrogen atom to a heavy atom, the fragment for the respective
-heavy atom is searched in the *fragment library* (see :ref:`theory`).
+heavy atom is searched in the *fragment library*.
 The atom names for the added hydrogen atoms are taken from the *name library*
 based on the name of the molecule and the heavy atom.
 If the name library does not support a molecule, the hydrogen atom names
@@ -89,8 +89,7 @@ While the default fragment library comprise all molecules from the
 `Chemical Component Dictionary <https://www.wwpdb.org/data/ccd>`_,
 the default name library only contains names for the most common residues -
 amino acids and nucleotides.
-
-If the fragment may miss fitting fragments for your molecule
+If the fragment library may miss fitting fragments for your molecule
 (which rarely happens) or you want to ensure canonical hydrogen atom naming
 for you molecule, can add this molecule (including hydrogen atoms) to both
 libraries by providing a path to a corresponding structure file via
@@ -100,6 +99,11 @@ specified with ``--fragformat``/``-f``.
 Note that the file must contain proper bond information and correct formal
 charges, so effectively a *MMTF*, *MOL* and *SDF* must be supplied.
 
+By default, *Hydride* does not consider periodic boundary conditions,
+as they appear e.g. in MD simulations.
+This can be changed with the ``--pbc``/``-p`` option.
+The required box vectors are read from the input structure file.
+
 
 Relaxation
 ----------
@@ -108,8 +112,7 @@ After hydrogen atoms are placed using proper bond lengths and angles,
 a short relaxation is performed.
 This step reduces steric clashes and forms hydrogen bonds.
 This step can be omitted with the ``--no-relax`` option.
-By default, the relaxation runs until a local energy optimum is reached
-(see :ref:`theory`).
+By default, the relaxation runs until a local energy optimum is reached.
 The number of relaxation steps can be limited with the
 ``--iterations``/``-n`` argument.
 Setting this argument may decrease the runtime of the program but also

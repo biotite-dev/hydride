@@ -31,6 +31,10 @@ def input_file(request):
         mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
     model = model[model.element != "H"]
+    
+    # Add box for test of '--pbc' option
+    model.box = np.identity(3) * 100
+    
     temp_file = tempfile.NamedTemporaryFile(
         "w", suffix=f".{request.param}", delete=False
     )
@@ -71,6 +75,12 @@ def dummy_output_file():
 
 
 def assert_hydrogen_addition(test_file):
+    """
+    Test that all hydrogen atoms were added with the correct name.
+
+    The hydrogen positions are not tested since the other test modules
+    already focus on this task.
+    """
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), f"{PDB_ID}.mmtf"))
     ref_model = mmtf.get_structure(mmtf_file, model=1, include_bonds=True)
     ref_model.charge = hydride.estimate_amino_acid_charges(ref_model, PH)
@@ -272,6 +282,21 @@ def test_angle_increment(input_file, output_file):
         "-o", output_file,
         "-c", str(PH),
         "--angle-increment", str(5)
+    ])
+
+    assert_hydrogen_addition(output_file)
+
+
+def test_pbc(input_file, output_file):
+    """
+    Test CLI run with ``--pbc`` parameter.
+    """
+    run_cli([
+        "-v",
+        "-i", input_file,
+        "-o", output_file,
+        "-c", str(PH),
+        "--pbc"
     ])
 
     assert_hydrogen_addition(output_file)

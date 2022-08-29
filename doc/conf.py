@@ -20,8 +20,8 @@ from os import listdir, makedirs
 import sys
 
 doc_path = dirname(realpath(__file__))
-# Include gecos/src in PYTHONPATH
-# in order to import the 'gecos' package
+# Include hydride/src in PYTHONPATH
+# in order to import the 'hydride' package
 package_path = join(dirname(doc_path), "src")
 sys.path.insert(0, package_path)
 import hydride
@@ -64,8 +64,7 @@ html_theme = "alabaster"
 html_static_path = ["static"]
 html_css_files = [
     "hydride.css",
-    "https://fonts.googleapis.com/css?" \
-        "family=Crete+Round|Fira+Sans|&display=swap",
+    "fonts.css"
 ]
 html_favicon = "static/assets/hydride_icon_32p.png"
 htmlhelp_basename = "HydrideDoc"
@@ -80,6 +79,7 @@ html_theme_options = {
     "logo_name"     : "false",
     "github_user"   : "biotite-dev",
     "github_repo"   : "hydride",
+    "github_type"   : "star",
     "github_banner" : "true",
     "page_width"    : "85%",
     "fixed_sidebar" : "true"

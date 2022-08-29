@@ -3,6 +3,7 @@
 # information.
 
 from os.path import join
+import itertools
 import pytest
 import numpy as np
 import biotite.structure as struc
@@ -10,7 +11,7 @@ import biotite.structure.info as info
 import biotite.structure.io.mmtf as mmtf
 import hydride
 from hydride.relax import _find_rotatable_bonds
-from .util import data_dir
+from .util import data_dir, place_over_periodic_boundary
 
 
 @pytest.fixture
@@ -50,12 +51,16 @@ def ethane():
     return ethane
 
 
-@pytest.mark.parametrize("seed", np.arange(10))
-def test_staggered(ethane, seed):
+@pytest.mark.parametrize(
+    "seed, periodic_dim", itertools.product(range(10), [None, 0, 1, 2])
+)
+def test_staggered(ethane, seed, periodic_dim):
     """
     :func:`relax_hydrogen()` should be able to restore a staggered
     conformation of ethane from any other conformation.
     """
+    BOX_SIZE = 100
+
     # Move the ethane molecule away
     # from the optimal staggered conformation
     np.random.seed(seed)
@@ -71,20 +76,37 @@ def test_staggered(ethane, seed):
     dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
     assert np.rad2deg(dihed) % 120 != pytest.approx(60, abs=1)
 
+    if periodic_dim is None:
+        box = None
+    else:
+        box = np.identity(3) * BOX_SIZE
+        # Move molecule to the border of the box
+        # to enforce interatomic interactions
+        # using minimum image convention
+        ethane = place_over_periodic_boundary(ethane, periodic_dim, BOX_SIZE)
+
     # Try to restore staggered conformation via relax_hydrogen()
     ethane.coord = hydride.relax_hydrogen(
         ethane,
         # The angle increment must be smaller
         # than the expected accuracy (abs=1)
         angle_increment = np.deg2rad(0.5),
+        box=box
     )
+
+    if periodic_dim is not None:
+        # Remove PBC again
+        ethane.coord = struc.remove_pbc_from_coord(
+            ethane.coord, box
+        )
 
     # Check if staggered conformation is restored
     dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
     assert np.rad2deg(dihed) % 120 == pytest.approx(60, abs=1)
 
 
-def test_hydrogen_bonds():
+@pytest.mark.parametrize("periodic_dim", [None, 0, 1, 2])
+def test_hydrogen_bonds(periodic_dim):
     """
     Check whether the relaxation algorithm is able to restore most of
     the original hydrogen bonds.
@@ -92,8 +114,12 @@ def test_hydrogen_bonds():
     The residues at the biotin binding pocket of streptavidin (including
     biotin itself) are used as test case.
     """
+    # The percentage of recovered hydrogen bonds
     PERCENTAGE = 1.0
+    # The relevant residues of the streptavidin binding pocket 
     RES_IDS = (27, 43, 45, 47, 90, 300)
+    # The size of the box if PBCs are enabled
+    BOX_SIZE = 1000
 
     mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "2rtg.mmtf"))
     atoms = mmtf.get_structure(
@@ -108,8 +134,23 @@ def test_hydrogen_bonds():
     mask = np.isin(atoms.res_id, RES_IDS)
     base_num = len(struc.hbond(atoms, mask, mask))
 
+    if periodic_dim is None:
+        box = None
+    else:
+        box = np.identity(3) * BOX_SIZE
+        # Move molecule to the border of the box
+        # to enforce interatomic interactions
+        # using minimum image convention
+        atoms = place_over_periodic_boundary(atoms, periodic_dim, BOX_SIZE)
+
     atoms.coord = hydride.relax_hydrogen(atoms)
-    mask = np.isin(atoms.res_id, RES_IDS)
+
+    if periodic_dim is not None:
+        # Remove PBC again
+        atoms.coord = struc.remove_pbc_from_coord(
+            atoms.coord, box
+        )
+    
     test_num = len(struc.hbond(atoms, mask, mask))
 
     if base_num == ref_num:
@@ -258,7 +299,7 @@ def test_limited_iterations():
     """
     Test whether the `iterations` parameter works properly.
     It is expected that the number of returned models,
-    if `return_trajectory, is set to true, is equal to the given number
+    if `return_trajectory is set to true, is equal to the given number
     of maximum iterations.
     That is only true, if the number of iterations is low enough,
     so that the relaxation does not terminate before.
@@ -275,3 +316,61 @@ def test_limited_iterations():
     )
 
     assert traj_coord.shape[0] == ITERATIONS
+
+
+@pytest.mark.parametrize(
+    "iterations, return_trajectory, return_energies",
+    itertools.product(
+        [None, 100],
+        [False, True],
+        [False, True]
+    )
+)
+def test_shortcut_return(iterations, return_trajectory, return_energies):
+    """
+    Test whether the shortcut return, that happens if no rotatable bonds
+    are found, has the same return types as the regular return.
+    Therefore the output types of two molecules, one with and one 
+    without rotatable bonds, are compared.
+    """
+    # Rotatable
+    ref_atoms  = info.residue("GLY")
+    # Non-rotatable
+    test_atoms = info.residue("HOH")
+
+    ref_output = hydride.relax_hydrogen(
+        ref_atoms, iterations,
+        return_trajectory=return_trajectory, return_energies=return_energies
+    )
+    test_output = hydride.relax_hydrogen(
+        test_atoms, iterations,
+        return_trajectory=return_trajectory, return_energies=return_energies
+    )
+
+    if isinstance(ref_output, tuple):
+        assert isinstance(test_output, tuple)
+        assert len(test_output) == len(ref_output)
+        for i in range(len(ref_output)):
+            assert isinstance(test_output[i], type(ref_output[i]))
+    else:
+        assert isinstance(test_output, type(ref_output))
+
+
+def test_atom_mask():
+    """
+    Test atom mask usage by relaxing only part of the model and
+    expect that no unmasked hydrogen positions changed.
+    """
+    MASKED_RES_IDS = np.arange(1, 11)
+
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
+    atoms = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    ref_coord = atoms.coord.copy()
+
+    mask = np.isin(atoms.res_id, MASKED_RES_IDS)
+    test_coord = hydride.relax_hydrogen(atoms, mask=mask)
+
+    assert (test_coord[~mask] == ref_coord[~mask]).all()
+    assert not (test_coord[mask] == ref_coord[mask]).all()

@@ -19,6 +19,13 @@ Since it does not require force-field parameters for the specific
 molecule(s), it can be used for adding hydrogen atoms to almost any
 organic molecule - from small ligands to large protein complexes.
 
+
+If you use *Hydride* in a scientific publication, please cite:
+
+| Kunzmann, P. Anter, J. M. & Hamacher, K. *Algorithms Mol. Biol.* (2022) 17:7.
+| `<https://doi.org/10.1186/s13015-022-00215-x>`_
+
+
 .. image:: /images/cover_structure.png
    :width: 400
    :align: center
@@ -30,5 +37,4 @@ organic molecule - from small ligands to large protein complexes.
    intro
    cli
    api
-   theory
    issues
