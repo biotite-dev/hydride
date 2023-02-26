@@ -110,7 +110,7 @@ def estimate_amino_acid_charges(atoms, ph):
     atom_charges = np.zeros(atoms.array_length(), dtype=int)
     
     # Charges for termini
-    amino_acid_mask = struc.filter_amino_acids(atoms)
+    amino_acid_mask = struc.filter_canonical_amino_acids(atoms)
     amino_indices   = np.where((atoms.atom_name ==   "N") & amino_acid_mask)[0]
     carboxy_indices = np.where((atoms.atom_name == "OXT") & amino_acid_mask)[0]
     chain_starts = struc.get_chain_starts(atoms, add_exclusive_stop=True)

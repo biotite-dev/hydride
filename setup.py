@@ -211,7 +211,7 @@ setup(
 
     entry_points = {"console_scripts": "hydride = hydride.cli:main"},
     
-    install_requires = ["biotite >= 0.28",
+    install_requires = ["biotite >= 0.36",
                         "numpy >= 1.13"],
     python_requires = ">=3.7",
     
