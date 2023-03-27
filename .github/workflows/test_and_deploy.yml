@@ -1,6 +1,5 @@
-Based on the workflow from https://github.com/biotite-dev/biotite/
-contributed by Daniel Farrell (danpf) and published under the same license
----
+# Based on the workflow from https://github.com/biotite-dev/biotite/
+# contributed by Daniel Farrell (danpf) and published under the same license
 
 name: "CI & CD"
 
