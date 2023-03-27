@@ -26,6 +26,7 @@ env:
   CIBW_TEST_SKIP: "*-macosx_arm64"
 
 
+jobs:
   test-and-build:
     name: "Build & Test"
     strategy:
