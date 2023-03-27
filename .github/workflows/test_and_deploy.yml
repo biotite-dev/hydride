@@ -45,10 +45,10 @@ jobs:
 
       - name: Build & (optionally) test wheels
         uses: pypa/cibuildwheel@v2.12.1
-        with:
-          only: ${{ matrix.os }}
 
       - uses: actions/upload-artifact@v3
+        with:
+          path: ./wheelhouse/*.whl
 
 
   make-sdist:
