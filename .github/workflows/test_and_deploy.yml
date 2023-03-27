@@ -31,7 +31,7 @@ jobs:
     name: "Build & Test"
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-latest]
+        os: [ubuntu-20.04, windows-2019, macos-11]
     
     runs-on: ${{ matrix.os }}
     steps:
@@ -100,7 +100,7 @@ jobs:
     name: Upload to GitHub Releases & PyPI
     permissions:
       contents: write
-    needs: [test-and-build]
+    needs: [test-and-build, make-sdist, make-doc]
     runs-on: ubuntu-latest
     steps:
     - uses: actions/download-artifact@v3
