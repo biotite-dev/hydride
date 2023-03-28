@@ -48,6 +48,7 @@ jobs:
 
       - uses: actions/upload-artifact@v3
         with:
+          name: dist
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
@@ -64,6 +65,7 @@ jobs:
       run: pipx run build --sdist
     - uses: actions/upload-artifact@v3
       with:
+        name: dist
         path: dist/*.tar.gz
         if-no-files-found: error
 
@@ -91,6 +93,7 @@ jobs:
         run: cd .//build; zip -r doc.zip doc; cd ..
       - uses: actions/upload-artifact@v3
         with:
+          name: doc
           path: build//doc.zip
           if-no-files-found: error
 
@@ -103,16 +106,15 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/download-artifact@v3
-      with:
-        name: artifact
-        path: dist
     - name: List distributions to be uploaded
       run: ls dist
     - name: Upload to GitHub Releases
       uses: softprops/action-gh-release@de2c0eb89ae2a093876385947365aca7b0e5f844
       if: github.event_name == 'release' && github.event.action == 'published'
       with:
-        files: dist//*
+        files: |
+          dist//*
+          doc//*
     - name: Upload to PyPI
       uses: pypa/gh-action-pypi-publish@c7f29f7adef1a245bd91520e94867e5c6eedddcc
       if: github.event_name == 'release' && github.event.action == 'published'
