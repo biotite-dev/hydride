@@ -49,6 +49,7 @@ jobs:
       - uses: actions/upload-artifact@v3
         with:
           path: ./wheelhouse/*.whl
+          if-no-files-found: error
 
 
   make-sdist:
@@ -64,6 +65,7 @@ jobs:
     - uses: actions/upload-artifact@v3
       with:
         path: dist/*.tar.gz
+        if-no-files-found: error
 
 
   make-doc:
@@ -89,7 +91,6 @@ jobs:
         run: cd .//build; zip -r doc.zip doc; cd ..
       - uses: actions/upload-artifact@v3
         with:
-          name: Hydride documentation
           path: build//doc.zip
           if-no-files-found: error
 
