@@ -37,24 +37,7 @@ original_wd = os.getcwd()
 # Change directory to setup directory to ensure correct file identification
 os.chdir(dirname(abspath(__file__)))
 # Import is relative to working directory
-from src.hydride import FragmentLibrary, AtomNameLibrary
-
-# Simply import long description from README file
-with open("README.rst") as readme:
-    long_description = readme.read()
-
-# Parse the top level package for the version
-# Do not use an import to prevent side effects
-# e.g. required runtime dependencies
-with open(join("src", "hydride", "__init__.py")) as init_file:
-    for line in init_file.read().splitlines():
-        if line.lstrip().startswith("__version__"):
-            version_match = re.search('".*"', line)
-            if version_match:
-                # Remove quotes
-                version = version_match.group(0)[1 : -1]
-            else:
-                raise ValueError("No version is specified in '__init__.py'")
+from src.hydride import FragmentLibrary, AtomNameLibrary, __version__
 
 
 
@@ -175,50 +158,15 @@ if not isfile(names_file_path):
 
 
 setup(
-    name="hydride",
-    version = version,
-    description = "Adding hydrogen atoms to molecular models",
-    long_description = long_description,
-    author = "The 'Hydride' contributors",
-    license = "BSD 3-Clause",
-    classifiers = [
-        "Development Status :: 5 - Production/Stable",
-        "Intended Audience :: Developers",
-        "Intended Audience :: Science/Research",
-        "License :: OSI Approved :: BSD License",
-        "Natural Language :: English",
-        "Operating System :: POSIX :: Linux",
-        "Operating System :: MacOS",
-        "Operating System :: Microsoft :: Windows",
-        "Programming Language :: Python :: 3",
-        "Programming Language :: Python :: Implementation :: CPython",
-        "Topic :: Scientific/Engineering :: Bio-Informatics",
-    ],
-    url = "https://hydride.biotite-python.org",
-    project_urls = {
-        "Documentation": "https://hydride.biotite-python.org",
-        "Repository": "https://github.com/biotite-dev/hydride",
-    },
-    
+    version = __version__,
     zip_safe = False,
     packages = find_packages("src"),
     package_dir = {"" : "src"},
-
     ext_modules = get_extensions(),
-
     # Include fragment and atom name libraries
     package_data = {"hydride" : ["*.pickle"]},
-
-    entry_points = {"console_scripts": "hydride = hydride.cli:main"},
-    
-    install_requires = ["biotite >= 0.35",
-                        "numpy >= 1.13"],
-    python_requires = ">=3.7",
-    
-    tests_require = ["pytest"],
 )
 
 
 # Return to original directory
 os.chdir(original_wd)
-

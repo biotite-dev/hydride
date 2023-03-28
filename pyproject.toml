@@ -1,10 +1,51 @@
+[project]
+name = "hydride"
+authors = [
+    {name = "The 'Hydride' contributors"},
+]
+description = "Adding hydrogen atoms to molecular models"
+readme = "README.rst"
+requires-python = ">=3.7"
+license = {file = "LICENSE.rst"}
+classifiers = [
+    "Development Status :: 5 - Production/Stable",
+    "Intended Audience :: Developers",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: BSD License",
+    "Natural Language :: English",
+    "Operating System :: POSIX :: Linux",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: Implementation :: CPython",
+    "Topic :: Scientific/Engineering :: Bio-Informatics"
+]
+dependencies = [
+    "biotite >= 0.35",
+    "numpy >= 1.14.5",
+]
+dynamic = ["version"]
+
+[project.urls]
+homepage = "https://hydride.biotite-python.org"
+repository = "https://github.com/biotite-dev/hydride"
+documentation = "https://hydride.biotite-python.org"
+
+[project.optional-dependencies]
+test = [
+  "pytest",
+]
+
+[project.scripts]
+hydride = "hydride.cli:main"
+
 [build-system]
 # Minimum requirements for the build system to execute.
 requires = [
     "setuptools >= 0.30",
     "wheel >= 0.30",
     "biotite >= 0.35",
-    "numpy >= 1.14, <= 1.21",
+    "oldest-supported-numpy",
     "msgpack >= 0.5.6",
     "cython >= 0.29"
 ]
