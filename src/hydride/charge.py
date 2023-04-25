@@ -87,6 +87,10 @@ def estimate_amino_acid_charges(atoms, ph):
         The estimated charges.
         0 for all atoms that are not part of an amino acid.
     
+    Notes
+    -----
+    The protonation state is only estimated for canonical amino acids.
+    
     References
     ----------
     

@@ -281,7 +281,7 @@ Both :func:`add_hydrogen()` and :func:`relax_hydrogen()` require associated
 formal charges for correct fragment identification or the electrostatic
 potential, respectively.
 However, for many entries in the *RCSB PDB* they are not properly set.
-At least for amino acids this issue can be remedied with
+At least for canonical amino acids this issue can be remedied with
 :func:`estimate_amino_acid_charges()`.
 This function calculates the formal charges of atoms in amino acids based on a
 given pH value.
