@@ -55,7 +55,7 @@ heavy atom, this can lead to e.g. protonated carboxy groups or deprotonated
 amino groups.
 *Hydride* recalculates the formal charges of atoms in amino acids, if the
 ``--charges``/``-c`` parameter together with the desired pH value is given.
-Note that only formal charges in amino acids are updated this way.
+Note that only formal charges in canonical amino acids are updated this way.
 For all other molecules the formal charge values from the input structure file
 is taken.
 Furthermore, the underlying method assigns charges based on the pK values of

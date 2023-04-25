@@ -124,8 +124,8 @@ def main(args=None):
     )
     parser.add_argument(
         "--charges", "-c", type=float, metavar="PH",
-        help="Recalculate the charges of atoms in amino acids based on the "
-             "given pH value. "
+        help="Recalculate the charges of atoms in canonical amino acids based "
+             "on the given pH value. "
              "This estimation does not take the surrounding amino acids into "
              "account."
     )
