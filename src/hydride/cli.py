@@ -276,9 +276,19 @@ def read_structure(path, format, model_number):
                 f"for the input structure with {model_count} models"
             )
         model = pdb.get_structure(
-            pdb_file, model=model_number, extra_fields=["charge"]
+            pdb_file, model=model_number, extra_fields=["charge"],
+            include_bonds=True
         )
-        model.bonds = struc.connect_via_residue_names(model)
+        # Expect that all ANY bonds are actually SINGLE bonds
+        bond_array = model.bonds.as_array()
+        unknown_order_mask = (bond_array[:,2] == struc.BondType.ANY)
+        if unknown_order_mask.any():
+            warnings.warn(
+                "For some bonds the bond order is unknown, "
+                "single bonds are assumed"
+            )
+            bond_array[:, unknown_order_mask] = struc.BondType.SINGLE
+            model.bonds = struc.BondList(model.array_length(), bond_array)
     elif format == "pdbx" or format == "cif":
         pdbx_file = pdbx.PDBxFile.read(path)
         model_count = pdbx.get_model_count(pdbx_file)
