@@ -285,9 +285,9 @@ def read_structure(path, format, model_number):
         if unknown_order_mask.any():
             warnings.warn(
                 "For some bonds the bond order is unknown, "
-                "single bonds are assumed"
+                "hence single bonds are assumed"
             )
-            bond_array[:, unknown_order_mask] = struc.BondType.SINGLE
+            bond_array[unknown_order_mask, 2] = struc.BondType.SINGLE
             model.bonds = struc.BondList(model.array_length(), bond_array)
     elif format == "pdbx" or format == "cif":
         pdbx_file = pdbx.PDBxFile.read(path)
