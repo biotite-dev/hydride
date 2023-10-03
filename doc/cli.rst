@@ -38,8 +38,8 @@ used is specified with ``--model``/``-m``. By default, the first model is used.
 
 The addition of hydrogen atoms requires complete information about the
 bonds between atoms.
-Currently, this information can only be read from *MMTF*, *MOL* and *SDF*
-files.
+Currently, this information can only be read from *PDB*, *MMTF*, *MOL* and
+*SDF* files.
 If bond information is absent, *Hydride* automatically connects
 atoms based on the molecule/residue name and the atom names.
 However, the automatic bond detection only works for molecules in the

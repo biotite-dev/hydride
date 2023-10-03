@@ -110,6 +110,47 @@ def test_simple(input_file, output_file):
     assert_hydrogen_addition(output_file)
 
 
+def test_pdbfile_missing_bond_order():
+    """
+    Test CLI run with PDB as input where some bond orders are missing.
+    """
+    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), f"{PDB_ID}.mmtf"))
+    model = mmtf.get_structure(
+        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    )
+    model = model[model.element != "H"]
+    # Increase a residue ID gap between each residue, so that
+    # inter-residue bonds need to be read from PDB (-> ANY bonds) and
+    # cannot be determined using 'connect_via_residue_names()'
+    model.res_id *= 2
+    
+    input_file = tempfile.NamedTemporaryFile(
+        "w", suffix=".pdb", delete=False
+    )
+    strucio.save_structure(input_file.name, model)
+    input_file.close()
+
+    output_file = tempfile.NamedTemporaryFile(
+        "r", suffix=f".pdb", delete=False
+    )
+    output_file.close()
+
+    with pytest.warns(
+        UserWarning, match="For some bonds the bond order is unknown"
+    ):
+        run_cli([
+            "-v",
+            "-i", input_file.name,
+            "-o", output_file.name,
+            "-c", str(PH)
+        ])
+
+    assert_hydrogen_addition(output_file.name)
+
+    os.remove(input_file.name)
+    os.remove(output_file.name)
+
+
 def test_molfile():
     """
     Test usage of MOL/SDF files for input and output.
