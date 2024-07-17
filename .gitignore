@@ -42,5 +42,6 @@ htmlcov
 *.code-workspace
 .vscode/*
 
-# Ignore fuse_hidden files on Linux systems
+# Ignore OS specific files
 *.fuse_hidden*
+.DS_Store
