@@ -13,7 +13,7 @@ import numpy as np
 import biotite.structure as struc
 import biotite.structure.io as strucio
 import biotite.structure.info as info
-import biotite.structure.io.mmtf as mmtf
+import biotite.structure.io.pdbx as pdbx
 import biotite.structure.io.mol as mol
 import hydride
 from hydride.cli import main as run_cli
@@ -24,17 +24,17 @@ PDB_ID = "1l2y"
 PH = 7.0
 
 
-@pytest.fixture(scope="module", params=["pdb", "pdbx", "cif", "mmtf"])
+@pytest.fixture(scope="module", params=["pdb", "pdbx", "cif", "bcif"])
 def input_file(request):
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), f"{PDB_ID}.mmtf"))
-    model = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    pdbx_file = pdbx.BinaryCIFFile.read(join(data_dir(), f"{PDB_ID}.bcif"))
+    model = pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
     model = model[model.element != "H"]
-    
+
     # Add box for test of '--pbc' option
     model.box = np.identity(3) * 100
-    
+
     temp_file = tempfile.NamedTemporaryFile(
         "w", suffix=f".{request.param}", delete=False
     )
@@ -46,7 +46,7 @@ def input_file(request):
     os.remove(temp_file.name)
 
 
-@pytest.fixture(params=["pdb", "pdbx", "cif", "mmtf"])
+@pytest.fixture(params=["pdb", "pdbx", "cif", "bcif"])
 def output_file(request):
     temp_file = tempfile.NamedTemporaryFile(
         "r", suffix=f".{request.param}", delete=False
@@ -74,28 +74,6 @@ def dummy_output_file():
     os.remove(temp_file.name)
 
 
-def assert_hydrogen_addition(test_file):
-    """
-    Test that all hydrogen atoms were added with the correct name.
-
-    The hydrogen positions are not tested since the other test modules
-    already focus on this task.
-    """
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), f"{PDB_ID}.mmtf"))
-    ref_model = mmtf.get_structure(mmtf_file, model=1, include_bonds=True)
-    ref_model.charge = hydride.estimate_amino_acid_charges(ref_model, PH)
-    # Both naming conventions 'H' and 'H1' are used in PDB
-    # However, AtomNameLibrary uses 'H'; it is changed for consistency
-    ref_model.atom_name[ref_model.atom_name == "H1"] = "H"
-
-    test_model = strucio.load_structure(test_file)
-
-    assert test_model.array_length() == ref_model.array_length()
-    assert test_model.atom_name.tolist() == ref_model.atom_name.tolist()
-
-
-
-
 def test_simple(input_file, output_file):
     """
     Test CLI run without optional parameters.
@@ -107,23 +85,23 @@ def test_simple(input_file, output_file):
         "-c", str(PH)
     ])
 
-    assert_hydrogen_addition(output_file)
+    _assert_hydrogen_addition(output_file)
 
 
 def test_pdbfile_missing_bond_order():
     """
     Test CLI run with PDB as input where some bond orders are missing.
     """
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), f"{PDB_ID}.mmtf"))
-    model = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    pdbx_file = pdbx.BinaryCIFFile.read(join(data_dir(), f"{PDB_ID}.bcif"))
+    model = pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
     model = model[model.element != "H"]
     # Increase a residue ID gap between each residue, so that
     # inter-residue bonds need to be read from PDB (-> ANY bonds) and
     # cannot be determined using 'connect_via_residue_names()'
     model.res_id *= 2
-    
+
     input_file = tempfile.NamedTemporaryFile(
         "w", suffix=".pdb", delete=False
     )
@@ -145,28 +123,29 @@ def test_pdbfile_missing_bond_order():
             "-c", str(PH)
         ])
 
-    assert_hydrogen_addition(output_file.name)
+    _assert_hydrogen_addition(output_file.name)
 
     os.remove(input_file.name)
     os.remove(output_file.name)
 
 
-def test_molfile():
+@pytest.mark.parametrize("format", ["mol", "sdf"])
+def test_small_molecule(format):
     """
     Test usage of MOL/SDF files for input and output.
     """
-    mol_file = mol.MOLFile.read(join(data_dir(), "TYR.sdf"))
-    ref_model = mol_file.get_structure()
+    sd_file = mol.SDFile.read(join(data_dir(), f"TYR.sdf"))
+    ref_model = mol.get_structure(sd_file)
     model = ref_model[ref_model.element != "H"]
 
     input_file = tempfile.NamedTemporaryFile(
-        "w", suffix=".mol", delete=False
+        "w", suffix=f".{format}", delete=False
     )
     strucio.save_structure(input_file.name, model)
     input_file.close()
 
     output_file = tempfile.NamedTemporaryFile(
-        "r", suffix=".mol", delete=False
+        "r", suffix=f".{format}", delete=False
     )
     output_file.close()
 
@@ -176,8 +155,11 @@ def test_molfile():
         "-o", output_file.name,
     ])
 
-    mol_file = mol.MOLFile.read(output_file.name)
-    test_model = mol_file.get_structure()
+    if format == "mol":
+        mol_file = mol.MOLFile.read(output_file.name)
+    elif format == "sdf":
+        mol_file = mol.SDFile.read(output_file.name)
+    test_model = mol.get_structure(mol_file)
 
     os.remove(input_file.name)
     os.remove(output_file.name)
@@ -215,8 +197,8 @@ def test_std_in_out(input_file, output_file):
 
     with open(output_file, "wb") as file:
         file.write(completed_process.stdout)
-    
-    assert_hydrogen_addition(output_file)
+
+    _assert_hydrogen_addition(output_file)
 
 
 @pytest.mark.parametrize("res_name", ["URA"])
@@ -230,11 +212,11 @@ def test_extra_fragments(output_file, res_name):
 
     ref_molecule = info.residue(res_name)
     frag_temp_file = tempfile.NamedTemporaryFile(
-        "w", suffix=f".mmtf", delete=False
+        "w", suffix=f".bcif", delete=False
     )
-    # As the test case is constructed with the exact same molecule
-    # can be in the library, move the molecule to assure that
-    # correct hydrogen position calculation is not an artifact
+    # As the test case is constructed with the exact same molecule from the library,
+    # move the molecule to assure that correct hydrogen position calculation
+    # is not an artifact
     np.random.seed(0)
     frag_molecule = struc.rotate(ref_molecule, np.random.rand(3))
     frag_molecule = struc.translate(frag_molecule, np.random.rand(3))
@@ -242,7 +224,7 @@ def test_extra_fragments(output_file, res_name):
 
     heavy_atoms = ref_molecule[ref_molecule.element != "H"]
     input_temp_file = tempfile.NamedTemporaryFile(
-        "w", suffix=f".mmtf", delete=False
+        "w", suffix=f".bcif", delete=False
     )
     strucio.save_structure(input_temp_file.name, heavy_atoms)
 
@@ -259,7 +241,7 @@ def test_extra_fragments(output_file, res_name):
     os.remove(input_temp_file.name)
 
     test_molecule = strucio.load_structure(output_file)
-    
+
     assert test_molecule.array_length() == ref_molecule.array_length()
     # Atoms are added to AtomNameLibrary
     # -> atom names should fit exactly
@@ -310,7 +292,7 @@ def test_limited_iterations(input_file, output_file):
         "--iterations", str(100)
     ])
 
-    assert_hydrogen_addition(output_file)
+    _assert_hydrogen_addition(output_file)
 
 
 def test_angle_increment(input_file, output_file):
@@ -325,7 +307,7 @@ def test_angle_increment(input_file, output_file):
         "--angle-increment", str(5)
     ])
 
-    assert_hydrogen_addition(output_file)
+    _assert_hydrogen_addition(output_file)
 
 
 def test_pbc(input_file, output_file):
@@ -340,7 +322,7 @@ def test_pbc(input_file, output_file):
         "--pbc"
     ])
 
-    assert_hydrogen_addition(output_file)
+    _assert_hydrogen_addition(output_file)
 
 
 def test_invalid_iteratons(input_file, dummy_output_file):
@@ -389,7 +371,7 @@ def test_unknown_extension(input_file, dummy_output_file):
         "w", suffix=".abc", delete=False
     )
     shutil.copy(input_file, temp_file.name)
-    
+
     with pytest.raises(SystemExit) as wrapped_exception:
         run_cli([
             "-i", temp_file.name,
@@ -433,3 +415,23 @@ def test_missing_ignore_residue(input_file, dummy_output_file):
             "-g", "A", "42"
         ])
     assert wrapped_exception.value.code == 1
+
+
+def _assert_hydrogen_addition(test_file):
+    """
+    Test that all hydrogen atoms were added with the correct name.
+
+    The hydrogen positions are not tested since the other test modules
+    already focus on this task.
+    """
+    pdbx_file = pdbx.BinaryCIFFile.read(join(data_dir(), f"{PDB_ID}.bcif"))
+    ref_model = pdbx.get_structure(pdbx_file, model=1, include_bonds=True)
+    ref_model.charge = hydride.estimate_amino_acid_charges(ref_model, PH)
+    # Both naming conventions 'H' and 'H1' are used in PDB
+    # However, AtomNameLibrary uses 'H'; it is changed for consistency
+    ref_model.atom_name[ref_model.atom_name == "H1"] = "H"
+
+    test_model = strucio.load_structure(test_file)
+
+    assert test_model.array_length() == ref_model.array_length()
+    assert test_model.atom_name.tolist() == ref_model.atom_name.tolist()

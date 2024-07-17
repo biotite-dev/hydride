@@ -8,7 +8,7 @@ import pytest
 import numpy as np
 import biotite.structure as struc
 import biotite.structure.info as info
-import biotite.structure.io.mmtf as mmtf
+import biotite.structure.io.pdbx as pdbx
 import hydride
 from hydride.relax import _find_rotatable_bonds
 from .util import data_dir, place_over_periodic_boundary
@@ -116,19 +116,19 @@ def test_hydrogen_bonds(periodic_dim):
     """
     # The percentage of recovered hydrogen bonds
     PERCENTAGE = 1.0
-    # The relevant residues of the streptavidin binding pocket 
+    # The relevant residues of the streptavidin binding pocket
     RES_IDS = (27, 43, 45, 47, 90, 300)
     # The size of the box if PBCs are enabled
     BOX_SIZE = 1000
 
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "2rtg.mmtf"))
-    atoms = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    pdbx_file = pdbx.BinaryCIFFile.read(join(data_dir(), "2rtg.bcif"))
+    atoms = pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
     atoms = atoms[atoms.chain_id == "B"]
     mask = np.isin(atoms.res_id, RES_IDS)
     ref_num = len(struc.hbond(atoms, mask, mask))
-    
+
     atoms = atoms[atoms.element != "H"]
     atoms, _ = hydride.add_hydrogen(atoms)
     mask = np.isin(atoms.res_id, RES_IDS)
@@ -150,7 +150,7 @@ def test_hydrogen_bonds(periodic_dim):
         atoms.coord = struc.remove_pbc_from_coord(
             atoms.coord, box
         )
-    
+
     test_num = len(struc.hbond(atoms, mask, mask))
 
     if base_num == ref_num:
@@ -163,7 +163,7 @@ def test_hydrogen_bonds(periodic_dim):
 
 @pytest.mark.parametrize(
     "res_name, ref_bonds",
-    [   
+    [
         # Fructopyranose
         ("FRU", [
             ( "O1",  "C1",  True,  ("HO1",)),
@@ -214,16 +214,12 @@ def test_bond_identification(res_name, ref_bonds):
         assert bond_tuple in ref_bonds
 
 
-def test_return_trajectory():
+def test_return_trajectory(atoms):
     """
     Test whether the `return_trajectory` parameter works properly.
     It is expected that :func:`relax_hydrogen()` returns multiple
     models.
     """
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
-    atoms = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
-    )
 
     traj_coord = hydride.relax_hydrogen(atoms, return_trajectory=True)
 
@@ -233,16 +229,12 @@ def test_return_trajectory():
     assert np.array_equal(traj_coord[-1], hydride.relax_hydrogen(atoms))
 
 
-def test_return_energies():
+def test_return_energies(atoms):
     """
     Test whether the `return_energies` parameter works properly.
     It is expected that :func:`relax_hydrogen()` returns an array of
     energies.
     """
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
-    atoms = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
-    )
 
     _, energies = hydride.relax_hydrogen(
         atoms, return_energies=True
@@ -277,7 +269,7 @@ def test_partial_charges(ethane, repulsive):
         charges = np.array([0, 0, 1, 0, 0, 1, 0, 0])
     else:
         charges = np.array([0, 0, -1, 0, 0, 1, 0, 0])
-    
+
     ethane.coord = hydride.relax_hydrogen(
         ethane,
         # The angle increment must be smaller
@@ -295,7 +287,7 @@ def test_partial_charges(ethane, repulsive):
     assert np.rad2deg(dihed) % 360 == pytest.approx(exp_angle, abs=1)
 
 
-def test_limited_iterations():
+def test_limited_iterations(atoms):
     """
     Test whether the `iterations` parameter works properly.
     It is expected that the number of returned models,
@@ -305,11 +297,6 @@ def test_limited_iterations():
     so that the relaxation does not terminate before.
     """
     ITERATIONS = 4
-    
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
-    atoms = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
-    )
 
     traj_coord = hydride.relax_hydrogen(
         atoms, ITERATIONS, return_trajectory=True
@@ -330,7 +317,7 @@ def test_shortcut_return(iterations, return_trajectory, return_energies):
     """
     Test whether the shortcut return, that happens if no rotatable bonds
     are found, has the same return types as the regular return.
-    Therefore the output types of two molecules, one with and one 
+    Therefore the output types of two molecules, one with and one
     without rotatable bonds, are compared.
     """
     # Rotatable
@@ -356,17 +343,13 @@ def test_shortcut_return(iterations, return_trajectory, return_energies):
         assert isinstance(test_output, type(ref_output))
 
 
-def test_atom_mask():
+def test_atom_mask(atoms):
     """
     Test atom mask usage by relaxing only part of the model and
     expect that no unmasked hydrogen positions changed.
     """
     MASKED_RES_IDS = np.arange(1, 11)
 
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
-    atoms = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
-    )
     ref_coord = atoms.coord.copy()
 
     mask = np.isin(atoms.res_id, MASKED_RES_IDS)

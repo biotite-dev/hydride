@@ -9,7 +9,7 @@ import pytest
 import numpy as np
 import biotite.structure as struc
 import biotite.structure.info as info
-import biotite.structure.io.mmtf as mmtf
+import biotite.structure.io.pdbx as pdbx
 import hydride
 from .util import data_dir, place_over_periodic_boundary
 
@@ -41,7 +41,7 @@ def test_hydrogen_positions(res_name, periodic_dim):
     """
     Test whether the assigned hydrogen positions approximately match
     the original hydrogen positions for a given molecule.
-    
+
     All chosen molecules consist completely of heavy atoms without
     rotational freedom for the bonded hydrogen atoms, such as aromatic
     or cyclic compounds.
@@ -94,7 +94,7 @@ def test_hydrogen_positions(res_name, periodic_dim):
     # -> simply check if the atoms names are unique
     assert len(np.unique(test_molecule.atom_name)) \
         == len(test_molecule.atom_name)
-    
+
     for heavy_i in np.where(ref_molecule.element != "H")[0]:
         ref_bond_i, _ = ref_molecule.bonds.get_bonds(heavy_i)
         ref_h_indices = ref_bond_i[ref_molecule.element[ref_bond_i] == "H"]
@@ -147,7 +147,7 @@ def test_molecule_without_hydrogens():
     assert test_molecule == ref_molecule
 
 
-def test_atom_mask():
+def test_atom_mask(atoms):
     """
     Test atom mask usage by hydrogenating in two steps:
     Firstly one random half is masked, secondly the other half is
@@ -155,10 +155,6 @@ def test_atom_mask():
     After reordering the atoms in the standard way, the result should be
     equal to hydrogenating in a single step.
     """
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
-    atoms = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
-    )
     heavy_atoms = atoms[atoms.element != "H"]
 
     ref_atoms, _ = hydride.add_hydrogen(heavy_atoms)
@@ -183,15 +179,11 @@ def test_atom_mask():
 
 
 @pytest.mark.parametrize("fill_value", [False, True])
-def test_atom_mask_extreme_case(fill_value):
+def test_atom_mask_extreme_case(atoms, fill_value):
     """
     Check whether the input atom mask works properly by testing the
     cases, where no atom and each atom is masked, respectively.
     """
-    mmtf_file = mmtf.MMTFFile.read(join(data_dir(), "1l2y.mmtf"))
-    atoms = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
-    )
     heavy_atoms = atoms[atoms.element != "H"]
     mask = np.full(heavy_atoms.array_length(), fill_value, dtype=bool)
 
@@ -210,7 +202,7 @@ def test_atom_mask_extreme_case(fill_value):
 
 @pytest.mark.parametrize(
     "path",
-    glob.glob(join(data_dir(), "*.mmtf"))
+    glob.glob(join(data_dir(), "*.bcif"))
 )
 def test_original_mask(path):
     """
@@ -218,12 +210,12 @@ def test_original_mask(path):
     by applying it to the hydrogenated structure and expect that the
     original structure is restored
     """
-    mmtf_file = mmtf.MMTFFile.read(path)
-    ref_model = mmtf.get_structure(
-        mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+    pdbx_file = pdbx.BinaryCIFFile.read(join(data_dir(), path))
+    ref_model = pdbx.get_structure(
+        pdbx_file, model=1, include_bonds=True, extra_fields=["charge"]
     )
     ref_model = ref_model[ref_model.element != "H"]
-    
+
     hydrogenated_model, original_mask = hydride.add_hydrogen(ref_model)
     test_model = hydrogenated_model[original_mask]
 

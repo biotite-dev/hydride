@@ -6,19 +6,18 @@ pyximport.install(
     language_level=3
 )
 
-from os.path import join
 import numpy as np
 import biotite.structure as struc
-import biotite.structure.io.mmtf as mmtf
+import biotite.structure.io.pdbx as pdbx
 import biotite.database.rcsb as rcsb
 import hydride
 import ammolite
 from util import COLORS, init_pymol_parameters
 
 
-mmtf_file = mmtf.MMTFFile.read(rcsb.fetch("1bna", "mmtf"))
-heavy_atoms = mmtf.get_structure(
-    mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+pdbx_file = pdbx.BinaryCIFFile.read(rcsb.fetch("1bna", "bcif"))
+heavy_atoms = pdbx.get_structure(
+    pdbx_file, model=1, include_bonds=True, extra_fields=["charge"]
 )
 heavy_atoms = heavy_atoms[heavy_atoms.res_name != "HOH"]
 
