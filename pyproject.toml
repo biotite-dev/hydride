@@ -44,7 +44,7 @@ hydride = "hydride.cli:main"
 requires = [
     "setuptools >= 0.30",
     "wheel >= 0.30",
-    "biotite >= 0.35",
+    "biotite >= 0.37",
     "oldest-supported-numpy",
     "msgpack >= 0.5.6",
     "cython >= 0.29"
