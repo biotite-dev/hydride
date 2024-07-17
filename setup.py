@@ -14,7 +14,7 @@ import msgpack
 import numpy as np
 import biotite.structure as struc
 import biotite.structure.info as info
-from biotite.structure.info.misc import _res_names
+from biotite.structure.info.ccd import get_ccd
 
 
 # Molecules that appear is most structures
@@ -27,7 +27,7 @@ PROMINENT_MOLECULES = [
     "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
     "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
     # Nucleotides
-    "A", "C", "G", "T", "U", "DA", "DC", "DG", "DT", "DU", 
+    "A", "C", "G", "T", "U", "DA", "DC", "DG", "DT", "DU",
     # Solvent
     "HOH",
 ]
@@ -56,7 +56,7 @@ except ValueError:
 
 def get_extensions():
     ext_sources = []
-    for dirpath, dirnames, filenames in os.walk(
+    for dirpath, _, filenames in os.walk(
         normpath(join("src", "hydride"))
     ):
         for filename in fnmatch.filter(filenames, '*.c'):
@@ -102,18 +102,25 @@ def get_protonation_variants():
         )
 
         molecules.append(molecule)
-    
+
     return molecules
+
+
+def get_mol_names_in_ccd():
+    ccd = get_ccd()
+    atom_category = ccd["chem_comp_atom"]
+    return np.unique(atom_category["comp_id"].as_array()).tolist()
+
 
 # Compile fragment library
 fragment_file_path = join("src", "hydride", "fragments.pickle")
 if not isfile(fragment_file_path):
     std_fragment_library = FragmentLibrary()
     # Add protonation variants at first because the bond lengths
-    # for neutral fragments might variate slightly
+    # for neutral fragments might vary slightly
     for mol in get_protonation_variants():
         std_fragment_library.add_molecule(mol)
-    mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
+    mol_names = get_mol_names_in_ccd() + PROMINENT_MOLECULES
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for i, mol_name in enumerate(mol_names):
@@ -154,7 +161,6 @@ if not isfile(names_file_path):
     print("Compiling atom name library... Done" + " " * 20)
     with open(names_file_path, "wb") as names_file:
         pickle.dump(std_name_library._name_dict, names_file)
-
 
 
 setup(
