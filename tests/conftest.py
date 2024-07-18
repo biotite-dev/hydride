@@ -4,26 +4,8 @@
 
 from os.path import join
 import biotite.structure.io.pdbx as pdbx
-import numpy as np
 import pytest
 from tests.util import data_dir
-
-
-def pytest_sessionstart(session):
-    """
-    Compile Cython source files, if Cython is installed and files are
-    not compiled, yet.
-    """
-    try:
-        import pyximport
-
-        pyximport.install(
-            build_in_temp=False,
-            setup_args={"include_dirs": np.get_include()},
-            language_level=3,
-        )
-    except ImportError:
-        pass
 
 
 @pytest.fixture

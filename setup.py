@@ -2,18 +2,16 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
-import fnmatch
 import os
 import pickle
 import warnings
-from os.path import abspath, dirname, isfile, join, normpath
+from os.path import abspath, dirname, isfile, join
 import biotite.structure as struc
 import biotite.structure.info as info
 import msgpack
 import numpy as np
 from biotite.structure.info.ccd import get_ccd
-from Cython.Build import cythonize
-from setuptools import Extension, find_packages, setup
+from setuptools import find_packages, setup
 
 # Molecules that appear is most structures
 # Hence, there is a high importance to get the hydrogen conformations
@@ -62,33 +60,7 @@ original_wd = os.getcwd()
 # Change directory to setup directory to ensure correct file identification
 os.chdir(dirname(abspath(__file__)))
 # Import is relative to working directory
-from src.hydride import AtomNameLibrary, FragmentLibrary, __version__
-
-# Compile Cython into C
-try:
-    cythonize("src/**/*.pyx", include_path=[np.get_include()], language_level=3)
-except ValueError:
-    # This is a source distribution and the directory already contains
-    # only C files
-    pass
-
-
-def get_extensions():
-    ext_sources = []
-    for dirpath, _, filenames in os.walk(normpath(join("src", "hydride"))):
-        for filename in fnmatch.filter(filenames, "*.c"):
-            ext_sources.append(os.path.join(dirpath, filename))
-    ext_names = [
-        source.replace("src" + normpath("/"), "")
-        .replace(".c", "")
-        .replace(normpath("/"), ".")
-        for source in ext_sources
-    ]
-    ext_modules = [
-        Extension(ext_names[i], [ext_sources[i]], include_dirs=[np.get_include()])
-        for i in range(len(ext_sources))
-    ]
-    return ext_modules
+from src.hydride import AtomNameLibrary, FragmentLibrary, __version__  # noqa: E402
 
 
 def get_protonation_variants():
@@ -185,7 +157,6 @@ setup(
     zip_safe=False,
     packages=find_packages("src"),
     package_dir={"": "src"},
-    ext_modules=get_extensions(),
     # Include fragment and atom name libraries
     package_data={"hydride": ["*.pickle"]},
 )

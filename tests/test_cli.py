@@ -165,9 +165,6 @@ def test_std_in_out(input_file, output_file):
         input=input_file_content,
         capture_output=True,
     )
-    stdout = completed_process.stderr.decode("UTF-8")
-    if "ModuleNotFoundError: No module named 'hydride.relax'" in stdout:
-        pytest.skip("Relax module is only compiled via pyximport")
     assert completed_process.returncode == 0
 
     with open(output_file, "wb") as file:

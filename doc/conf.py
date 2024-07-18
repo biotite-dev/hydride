@@ -4,18 +4,6 @@
 
 __author__ = "Patrick Kunzmann"
 
-try:
-    import numpy as np
-    import pyximport
-
-    pyximport.install(
-        build_in_temp=False,
-        setup_args={"include_dirs": np.get_include()},
-        language_level=3,
-    )
-except ImportError:
-    pass
-
 import sys
 from os.path import dirname, join, realpath
 
@@ -24,7 +12,7 @@ doc_path = dirname(realpath(__file__))
 # in order to import the 'hydride' package
 package_path = join(dirname(doc_path), "src")
 sys.path.insert(0, package_path)
-import hydride
+import hydride  # noqa: E402
 
 # Include gecos/doc in PYTHONPATH
 # in order to import modules for plot genaration etc.

@@ -1,10 +1,3 @@
-import numpy as np
-import pyximport
-
-pyximport.install(
-    build_in_temp=False, setup_args={"include_dirs": np.get_include()}, language_level=3
-)
-
 import ammolite
 import biotite.database.rcsb as rcsb
 import biotite.structure as struc

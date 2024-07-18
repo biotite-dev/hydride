@@ -364,3 +364,10 @@ def test_atom_mask(atoms):
 
     assert (test_coord[~mask] == ref_coord[~mask]).all()
     assert not (test_coord[mask] == ref_coord[mask]).all()
+
+
+def test_unkown_elements(atoms):
+    """
+    Check if unknown elements are properly ignored and a warning is raised.
+    """
+    raise

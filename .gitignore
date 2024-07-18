@@ -21,11 +21,6 @@ htmlcov
 *.pyo
 *.py-e
 
-# Ignore files created via Cython
-*.c
-*.so
-*.pyd
-
 # Ignore potential directory created during install
 *.egg-info
 
