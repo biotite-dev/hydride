@@ -6,9 +6,9 @@ __name__ = "hydride"
 __author__ = "Patrick Kunzmann"
 __all__ = ["AtomNameLibrary"]
 
-from os.path import join, dirname, abspath
 import pickle
 import string
+from os.path import abspath, dirname, join
 import numpy as np
 from biotite.structure.error import BadStructureError
 
@@ -32,7 +32,6 @@ class AtomNameLibrary:
 
     def __init__(self):
         self._name_dict = {}
-    
 
     @staticmethod
     def standard_library():
@@ -50,10 +49,8 @@ class AtomNameLibrary:
             AtomNameLibrary._std_library = AtomNameLibrary()
             file_name = join(dirname(abspath(__file__)), "names.pickle")
             with open(file_name, "rb") as names_file:
-                AtomNameLibrary._std_library._name_dict \
-                    = pickle.load(names_file)
+                AtomNameLibrary._std_library._name_dict = pickle.load(names_file)
         return AtomNameLibrary._std_library
-    
 
     def add_molecule(self, molecule):
         """
@@ -69,7 +66,7 @@ class AtomNameLibrary:
             raise BadStructureError(
                 "The input molecule must have an associated BondList"
             )
-        
+
         all_bond_indices, _ = molecule.bonds.get_all_bonds()
 
         for i in np.where(molecule.element != "H")[0]:
@@ -78,15 +75,15 @@ class AtomNameLibrary:
             bonded_indices = bonded_indices[bonded_indices != -1]
             # Set atom names of bonded hydrogen atoms as values
             hydrogen_names = [
-                molecule.atom_name[j] for j in bonded_indices
+                molecule.atom_name[j]
+                for j in bonded_indices
                 if molecule.element[j] == "H"
             ]
             if len(hydrogen_names) > 0:
-                self._name_dict[
-                    (molecule.res_name[i], molecule.atom_name[i])
-                ] = hydrogen_names
+                self._name_dict[(molecule.res_name[i], molecule.atom_name[i])] = (
+                    hydrogen_names
+                )
 
-        
     def generate_hydrogen_names(self, heavy_res_name, heavy_atom_name):
         """
         Generate hydrogen atom names for the given residue and heavy
@@ -116,7 +113,6 @@ class AtomNameLibrary:
                     number += 1
                     yield f"{hydrogen_name}{number}"
 
-        
         else:
             if len(heavy_atom_name) == 0:
                 # Atom array has no atom names
@@ -128,10 +124,8 @@ class AtomNameLibrary:
                 # Atom name ends with number
                 # -> assume ligand atom naming
                 # C1 -> H1, H1A, H1B
-                number = int(
-                    ''.join([c for c in heavy_atom_name if c.isdigit()])
-                )
-                element = heavy_atom_name[0]
+                number = int("".join([c for c in heavy_atom_name if c.isdigit()]))
+                heavy_atom_name[0]
                 # C1 -> H1, H1A, H1B
                 yield f"H{number}"
                 i = 0
@@ -154,4 +148,3 @@ class AtomNameLibrary:
                 while True:
                     yield f"H{number}"
                     number += 1
-        

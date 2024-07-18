@@ -2,16 +2,16 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
-from os.path import join
 import itertools
-import pytest
-import numpy as np
+from os.path import join
 import biotite.structure as struc
 import biotite.structure.info as info
 import biotite.structure.io.pdbx as pdbx
+import numpy as np
+import pytest
 import hydride
 from hydride.relax import _find_rotatable_bonds
-from .util import data_dir, place_over_periodic_boundary
+from tests.util import data_dir, place_over_periodic_boundary
 
 
 @pytest.fixture
@@ -19,27 +19,31 @@ def ethane():
     # Construct ethane in staggered conformation
     ethane = struc.AtomArray(8)
     ethane.element = np.array(["C", "C", "H", "H", "H", "H", "H", "H"])
-    ethane.coord = np.array([
-        [-0.756,  0.000,  0.000],
-        [ 0.756,  0.000,  0.000],
-        [-1.140,  0.659,  0.7845],
-        [-1.140,  0.350, -0.9626],
-        [-1.140, -1.009,  0.1781],
-        [ 1.140, -0.350,  0.9626],
-        [ 1.140,  1.009, -0.1781],
-        [ 1.140, -0.659, -0.7845],
-    ])
+    ethane.coord = np.array(
+        [
+            [-0.756, 0.000, 0.000],
+            [0.756, 0.000, 0.000],
+            [-1.140, 0.659, 0.7845],
+            [-1.140, 0.350, -0.9626],
+            [-1.140, -1.009, 0.1781],
+            [1.140, -0.350, 0.9626],
+            [1.140, 1.009, -0.1781],
+            [1.140, -0.659, -0.7845],
+        ]
+    )
     ethane.bonds = struc.BondList(
         8,
-        np.array([
-            [0, 1, 1],
-            [0, 2, 1],
-            [0, 3, 1],
-            [0, 4, 1],
-            [1, 5, 1],
-            [1, 6, 1],
-            [1, 7, 1],
-        ])
+        np.array(
+            [
+                [0, 1, 1],
+                [0, 2, 1],
+                [0, 3, 1],
+                [0, 4, 1],
+                [1, 5, 1],
+                [1, 6, 1],
+                [1, 7, 1],
+            ]
+        ),
     )
     ethane.set_annotation("charge", np.zeros(ethane.array_length(), dtype=int))
 
@@ -67,9 +71,9 @@ def test_staggered(ethane, seed, periodic_dim):
     angle = np.random.rand() * 2 * np.pi
     ethane.coord[5:] = struc.rotate_about_axis(
         ethane.coord[5:],
-        angle = angle,
-        axis = ethane.coord[1] - ethane.coord[0],
-        support = ethane.coord[0]
+        angle=angle,
+        axis=ethane.coord[1] - ethane.coord[0],
+        support=ethane.coord[0],
     )
 
     # Check if new conformation ethane is not staggered anymore
@@ -90,15 +94,13 @@ def test_staggered(ethane, seed, periodic_dim):
         ethane,
         # The angle increment must be smaller
         # than the expected accuracy (abs=1)
-        angle_increment = np.deg2rad(0.5),
-        box=box
+        angle_increment=np.deg2rad(0.5),
+        box=box,
     )
 
     if periodic_dim is not None:
         # Remove PBC again
-        ethane.coord = struc.remove_pbc_from_coord(
-            ethane.coord, box
-        )
+        ethane.coord = struc.remove_pbc_from_coord(ethane.coord, box)
 
     # Check if staggered conformation is restored
     dihed = struc.dihedral(ethane[2], ethane[0], ethane[1], ethane[5])
@@ -147,9 +149,7 @@ def test_hydrogen_bonds(periodic_dim):
 
     if periodic_dim is not None:
         # Remove PBC again
-        atoms.coord = struc.remove_pbc_from_coord(
-            atoms.coord, box
-        )
+        atoms.coord = struc.remove_pbc_from_coord(atoms.coord, box)
 
     test_num = len(struc.hbond(atoms, mask, mask))
 
@@ -165,33 +165,44 @@ def test_hydrogen_bonds(periodic_dim):
     "res_name, ref_bonds",
     [
         # Fructopyranose
-        ("FRU", [
-            ( "O1",  "C1",  True,  ("HO1",)),
-            ( "O2",  "C2",  True,  ("HO2",)),
-            ( "O3",  "C3",  True,  ("HO3",)),
-            ( "O4",  "C4",  True,  ("HO4",)),
-            ( "O6",  "C6",  True,  ("HO6",)),
-        ]),
+        (
+            "FRU",
+            [
+                ("O1", "C1", True, ("HO1",)),
+                ("O2", "C2", True, ("HO2",)),
+                ("O3", "C3", True, ("HO3",)),
+                ("O4", "C4", True, ("HO4",)),
+                ("O6", "C6", True, ("HO6",)),
+            ],
+        ),
         # Arginine with positive side chain
-        ("ARG", [
-            (  "N",  "CA",  True,  ("H", "H2")),
-            ("OXT",   "C",  True,  ("HXT",)),
-        ]),
+        (
+            "ARG",
+            [
+                ("N", "CA", True, ("H", "H2")),
+                ("OXT", "C", True, ("HXT",)),
+            ],
+        ),
         # Isoleucine
-        ("ILE", [
-            (  "N",  "CA",  True,  ("H", "H2")),
-            ("OXT",   "C",  True,  ("HXT",)),
-            ("CG2",  "CB",  True,  ("HG21", "HG22", "HG23")),
-            ("CD1", "CG1",  True,  ("HD11", "HD12", "HD13")),
-        ]),
+        (
+            "ILE",
+            [
+                ("N", "CA", True, ("H", "H2")),
+                ("OXT", "C", True, ("HXT",)),
+                ("CG2", "CB", True, ("HG21", "HG22", "HG23")),
+                ("CD1", "CG1", True, ("HD11", "HD12", "HD13")),
+            ],
+        ),
         # 1-phenylguanidine
-        ("PL0", [
-            ( "N3",  "C7",  False, ("HN3",)),
-        ]),
+        (
+            "PL0",
+            [
+                ("N3", "C7", False, ("HN3",)),
+            ],
+        ),
         # Water
-        ("HOH", [
-        ]),
-    ]
+        ("HOH", []),
+    ],
 )
 def test_bond_identification(res_name, ref_bonds):
     """
@@ -209,7 +220,7 @@ def test_bond_identification(res_name, ref_bonds):
             molecule.atom_name[center_atom_i],
             molecule.atom_name[bonded_atom_i],
             is_free,
-            tuple(np.sort(molecule.atom_name[h_indices]))
+            tuple(np.sort(molecule.atom_name[h_indices])),
         )
         assert bond_tuple in ref_bonds
 
@@ -236,9 +247,7 @@ def test_return_energies(atoms):
     energies.
     """
 
-    _, energies = hydride.relax_hydrogen(
-        atoms, return_energies=True
-    )
+    _, energies = hydride.relax_hydrogen(atoms, return_energies=True)
     assert isinstance(energies, np.ndarray)
     # Energies should monotonically decrease
     assert (np.diff(energies) <= 0).all()
@@ -274,8 +283,8 @@ def test_partial_charges(ethane, repulsive):
         ethane,
         # The angle increment must be smaller
         # than the expected accuracy (abs=1)
-        angle_increment = np.deg2rad(0.5),
-        partial_charges = charges
+        angle_increment=np.deg2rad(0.5),
+        partial_charges=charges,
     )
 
     # Check if staggered conformation is restored
@@ -298,20 +307,14 @@ def test_limited_iterations(atoms):
     """
     ITERATIONS = 4
 
-    traj_coord = hydride.relax_hydrogen(
-        atoms, ITERATIONS, return_trajectory=True
-    )
+    traj_coord = hydride.relax_hydrogen(atoms, ITERATIONS, return_trajectory=True)
 
     assert traj_coord.shape[0] == ITERATIONS
 
 
 @pytest.mark.parametrize(
     "iterations, return_trajectory, return_energies",
-    itertools.product(
-        [None, 100],
-        [False, True],
-        [False, True]
-    )
+    itertools.product([None, 100], [False, True], [False, True]),
 )
 def test_shortcut_return(iterations, return_trajectory, return_energies):
     """
@@ -321,17 +324,21 @@ def test_shortcut_return(iterations, return_trajectory, return_energies):
     without rotatable bonds, are compared.
     """
     # Rotatable
-    ref_atoms  = info.residue("GLY")
+    ref_atoms = info.residue("GLY")
     # Non-rotatable
     test_atoms = info.residue("HOH")
 
     ref_output = hydride.relax_hydrogen(
-        ref_atoms, iterations,
-        return_trajectory=return_trajectory, return_energies=return_energies
+        ref_atoms,
+        iterations,
+        return_trajectory=return_trajectory,
+        return_energies=return_energies,
     )
     test_output = hydride.relax_hydrogen(
-        test_atoms, iterations,
-        return_trajectory=return_trajectory, return_energies=return_energies
+        test_atoms,
+        iterations,
+        return_trajectory=return_trajectory,
+        return_energies=return_energies,
     )
 
     if isinstance(ref_output, tuple):

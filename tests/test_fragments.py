@@ -3,39 +3,41 @@
 # information.
 
 import itertools
-from biotite.structure.atoms import Atom
-import pytest
-import numpy as np
 import biotite.structure as struc
 import biotite.structure.info as info
+import numpy as np
+import pytest
 import hydride
 
 
-@pytest.mark.parametrize("res_name", [
-    "BNZ", # Benzene
-    "BZF", # Benzofuran
-    "IND", # indole
-    "PZO", # Pyrazole
-    "BZI", # Benzimidazole
-    "LOM", # Thiazole
-    "P1R", # Pyrimidine
-    "ISQ", # Isoquinoline
-    "NPY", # Naphthalene
-    "AN3", # Anthracene
-    "0PY", # Pyridine
-    "4FT", # Phthalazine
-    "URA", # Uracil
-    "CHX", # Cyclohexane
-    "CEJ", # 1,3-Cyclopentanedione
-    "CN",  # Hydrogen cyanide
-    "11X", # N-pyridin-3-ylmethylaniline
-    "ANL", # Aniline
-])
+@pytest.mark.parametrize(
+    "res_name",
+    [
+        "BNZ",  # Benzene
+        "BZF",  # Benzofuran
+        "IND",  # indole
+        "PZO",  # Pyrazole
+        "BZI",  # Benzimidazole
+        "LOM",  # Thiazole
+        "P1R",  # Pyrimidine
+        "ISQ",  # Isoquinoline
+        "NPY",  # Naphthalene
+        "AN3",  # Anthracene
+        "0PY",  # Pyridine
+        "4FT",  # Phthalazine
+        "URA",  # Uracil
+        "CHX",  # Cyclohexane
+        "CEJ",  # 1,3-Cyclopentanedione
+        "CN",  # Hydrogen cyanide
+        "11X",  # N-pyridin-3-ylmethylaniline
+        "ANL",  # Aniline
+    ],
+)
 def test_hydrogen_positions(res_name):
     """
     Test whether the assigned hydrogen positions approximately match
     the original hydrogen positions for a given molecule.
-    
+
     All chosen molecules consist completely of heavy atoms without
     rotational freedom for the bonded hydrogen atoms, such as aromatic
     or cyclic compounds.
@@ -53,10 +55,10 @@ def test_hydrogen_positions(res_name):
     molecule = info.residue(res_name)
     # Perform translation of the molecule along the three axes
     ref_hydrogen_coord = molecule.coord[molecule.element == "H"]
-    
+
     heavy_atoms = molecule[molecule.element != "H"]
     test_hydrogen_coord = library.calculate_hydrogen_coord(heavy_atoms)
-    
+
     test_count = 0
     for coord in test_hydrogen_coord:
         test_count += len(coord)
@@ -72,23 +74,32 @@ def test_hydrogen_positions(res_name):
             elif len(hydrogen_coord) == 1:
                 # Only a single hydrogen atom
                 # -> unambiguous assignment to reference hydrogen coord
-                assert np.max(struc.distance(
-                    hydrogen_coord,
-                    ref_hydrogen_coord[ref_index : ref_index+1]
-                )) <= TOLERANCE
+                assert (
+                    np.max(
+                        struc.distance(
+                            hydrogen_coord,
+                            ref_hydrogen_coord[ref_index : ref_index + 1],
+                        )
+                    )
+                    <= TOLERANCE
+                )
                 ref_index += 1
             elif len(hydrogen_coord) == 2:
                 # Heavy atom has 2 hydrogen atoms
                 # -> Since the hydrogen atoms are indistinguishable,
                 # there are two possible assignment to reference
                 # hydrogen atoms
-                best_distance = min([
-                    np.max(struc.distance(
-                        hydrogen_coord,
-                        ref_hydrogen_coord[ref_index : ref_index+2][::order]
-                    ))
-                    for order in (1, -1)
-                ])
+                best_distance = min(
+                    [
+                        np.max(
+                            struc.distance(
+                                hydrogen_coord,
+                                ref_hydrogen_coord[ref_index : ref_index + 2][::order],
+                            )
+                        )
+                        for order in (1, -1)
+                    ]
+                )
                 assert best_distance <= TOLERANCE
                 ref_index += 2
             else:
@@ -101,7 +112,6 @@ def test_hydrogen_positions(res_name):
             raise
 
 
-
 def test_missing_fragment():
     """
     If a molecule contains an unknown fragment, check if a warning is
@@ -111,12 +121,11 @@ def test_missing_fragment():
 
     lib = hydride.FragmentLibrary.standard_library()
 
-    ref_mol = info.residue("BZI") # Benzimidazole
+    ref_mol = info.residue("BZI")  # Benzimidazole
     # It should not be possible to have a nitrogen at this position
     # with a positive charge
     ref_mol.charge[0] = 1
     ref_hydrogen_coord = ref_mol.coord[ref_mol.element == "H"]
-
 
     test_mol = test_mol = ref_mol[ref_mol.element != "H"]
     with pytest.warns(
@@ -128,12 +137,17 @@ def test_missing_fragment():
     for coord in hydrogen_coord:
         flattend_coord += coord.tolist()
     test_hydrogen_coord = np.array(flattend_coord)
-    
-    assert np.max(struc.distance(
-        test_hydrogen_coord,
-        # Expect missing first hydrogen due to missing fragment
-        ref_hydrogen_coord[1:]
-    )) <= TOLERANCE
+
+    assert (
+        np.max(
+            struc.distance(
+                test_hydrogen_coord,
+                # Expect missing first hydrogen due to missing fragment
+                ref_hydrogen_coord[1:],
+            )
+        )
+        <= TOLERANCE
+    )
 
 
 @pytest.mark.parametrize(
@@ -142,7 +156,7 @@ def test_missing_fragment():
         # L-alanine and D-alanine
         ["ALA", "DAL"],
         ["ALA", "DAL"],
-    )
+    ),
 )
 def test_stereocenter(lib_enantiomer, subject_enantiomer):
     """
@@ -166,7 +180,7 @@ def test_stereocenter(lib_enantiomer, subject_enantiomer):
     test_model, _ = hydride.add_hydrogen(test_model, fragment_library=lib)
 
     test_model, _ = struc.superimpose(
-        ref_model, test_model, atom_mask = (test_model.element != "H")
+        ref_model, test_model, atom_mask=(test_model.element != "H")
     )
     ref_stereo_h_coord = ref_model.coord[ref_model.atom_name == "HA"][0]
     test_stereo_h_coord = test_model.coord[test_model.atom_name == "HA"][0]
@@ -174,14 +188,17 @@ def test_stereocenter(lib_enantiomer, subject_enantiomer):
     assert struc.distance(test_stereo_h_coord, ref_stereo_h_coord) <= TOLERANCE
 
 
-@pytest.mark.parametrize("res_name, nitrogen_index", [
-    ("ARG",  7), # Arginine NE
-    ("ARG",  9), # Arginine NH1
-    ("ARG", 10), # Arginine NH2
-    ("PRO",  0), # Proline N
-    ("ASN",  7), # Asparagine N
-    ("T",   15), # Thymidine N3
-])
+@pytest.mark.parametrize(
+    "res_name, nitrogen_index",
+    [
+        ("ARG", 7),  # Arginine NE
+        ("ARG", 9),  # Arginine NH1
+        ("ARG", 10),  # Arginine NH2
+        ("PRO", 0),  # Proline N
+        ("ASN", 7),  # Asparagine N
+        ("T", 15),  # Thymidine N3
+    ],
+)
 def test_partial_double_bonds(res_name, nitrogen_index):
     """
     It is difficult to assign hydrogen atoms to nitrogen properly,
@@ -204,11 +221,11 @@ def test_partial_double_bonds(res_name, nitrogen_index):
     molecule = info.residue(res_name)
     if molecule.element[nitrogen_index] != "N":
         raise ValueError("Invalid test case")
-    
+
     np.random.seed(0)
     molecule = struc.rotate(molecule, np.random.rand(3))
     molecule = struc.translate(molecule, np.random.rand(3))
-    
+
     bond_indices, _ = molecule.bonds.get_bonds(nitrogen_index)
     bond_h_indices = bond_indices[molecule.element[bond_indices] == "H"]
     ref_hydrogen_coord = molecule.coord[bond_h_indices]
@@ -224,22 +241,20 @@ def test_partial_double_bonds(res_name, nitrogen_index):
     elif len(test_hydrogen_coord) == 1:
         # Only a single hydrogen atom
         # -> unambiguous assignment to reference hydrogen coord
-        assert np.max(struc.distance(
-            test_hydrogen_coord,
-            ref_hydrogen_coord
-        )) <= TOLERANCE
+        assert (
+            np.max(struc.distance(test_hydrogen_coord, ref_hydrogen_coord)) <= TOLERANCE
+        )
     elif len(test_hydrogen_coord) == 2:
         # Heavy atom has 2 hydrogen atoms
         # -> Since the hydrogen atoms are indistinguishable,
         # there are two possible assignment to reference
         # hydrogen atoms
-        best_distance = min([
-            np.max(struc.distance(
-                test_hydrogen_coord,
-                ref_hydrogen_coord[::order]
-            ))
-            for order in (1, -1)
-        ])
+        best_distance = min(
+            [
+                np.max(struc.distance(test_hydrogen_coord, ref_hydrogen_coord[::order]))
+                for order in (1, -1)
+            ]
+        )
         assert best_distance <= TOLERANCE
     else:
         # Heavy atom has 3 hydrogen atoms
@@ -259,17 +274,19 @@ def test_undefined_bond_type():
     molecule.bonds = struc.BondList(
         molecule.array_length(),
         # Remove bond type from existing bonds
-        molecule.bonds.as_array()[:,:2]
+        molecule.bonds.as_array()[:, :2],
     )
 
     # Test handing of 'BondType.ANY' in 'add_molecule()'
     library = hydride.FragmentLibrary()
     with pytest.warns(UserWarning) as record:
         library.add_molecule(molecule)
-    assert any([
-        True if "undefined bond type" in warning.message.args[0] else False
-        for warning in record
-    ])
+    assert any(
+        [
+            True if "undefined bond type" in warning.message.args[0] else False
+            for warning in record
+        ]
+    )
     # No fragment should be added
     assert len(library._frag_dict) == 0
 
@@ -278,10 +295,12 @@ def test_undefined_bond_type():
     library = hydride.FragmentLibrary.standard_library()
     with pytest.warns(UserWarning) as record:
         hydrogen_coord = library.calculate_hydrogen_coord(heavy_atoms)
-    assert any([
-        True if "undefined bond type" in warning.message.args[0] else False
-        for warning in record
-    ])
+    assert any(
+        [
+            True if "undefined bond type" in warning.message.args[0] else False
+            for warning in record
+        ]
+    )
     assert len(hydrogen_coord) == heavy_atoms.array_length()
     for coord in hydrogen_coord:
         # For each heavy atom there should be no added hydrogen
