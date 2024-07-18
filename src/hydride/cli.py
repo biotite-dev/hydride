@@ -5,17 +5,17 @@
 __name__ = "hydride"
 __author__ = "Patrick Kunzmann"
 
-from os.path import splitext
-import sys
 import argparse
+import sys
 import warnings
-import numpy as np
+from os.path import splitext
 import biotite.structure as struc
+import biotite.structure.io.mol as mol
 import biotite.structure.io.pdb as pdb
 import biotite.structure.io.pdbx as pdbx
-import biotite.structure.io.mol as mol
+import numpy as np
 from .add import add_hydrogen
-from. charge import estimate_amino_acid_charges
+from .charge import estimate_amino_acid_charges
 from .fragments import FragmentLibrary
 from .names import AtomNameLibrary
 from .relax import relax_hydrogen
@@ -28,115 +28,144 @@ class UserInputError(Exception):
 def main(args=None):
     parser = argparse.ArgumentParser(
         description="This program adds hydrogen atoms to molecular "
-                    "structures where these are missing.\n"
-                    "For more information, please visit "
-                    "https://hydride.biotite-python.org/.",
-        formatter_class=argparse.ArgumentDefaultsHelpFormatter
+        "structures where these are missing.\n"
+        "For more information, please visit "
+        "https://hydride.biotite-python.org/.",
+        formatter_class=argparse.ArgumentDefaultsHelpFormatter,
     )
 
     parser.add_argument(
-        "--infile", "-i", metavar="FILE",
+        "--infile",
+        "-i",
+        metavar="FILE",
         help="The path to the input structure file containing the model "
-              "without hydrogen atoms. "
-              "If omitted, the file is read from STDOUT."
+        "without hydrogen atoms. "
+        "If omitted, the file is read from STDOUT.",
     )
     parser.add_argument(
-        "--outfile", "-o", metavar="FILE",
+        "--outfile",
+        "-o",
+        metavar="FILE",
         help="The path to the output structure file where the model "
-             "with added hydrogen atoms should be written to. "
-             "If omitted, the file is written to STDOUT. "
-             "Any existing hydrogen atoms will be removed the model."
+        "with added hydrogen atoms should be written to. "
+        "If omitted, the file is written to STDOUT. "
+        "Any existing hydrogen atoms will be removed the model.",
     )
     parser.add_argument(
-        "--informat", "-I",
+        "--informat",
+        "-I",
         choices=["pdb", "pdbx", "cif", "bcif", "sdf", "mol"],
         help="The file format of the input file. "
-             "Must be specified if input file is read from STDIN. "
-             "If omitted, the file format is guessed from the suffix "
-             "of the file."
+        "Must be specified if input file is read from STDIN. "
+        "If omitted, the file format is guessed from the suffix "
+        "of the file.",
     )
     parser.add_argument(
-        "--outformat", "-O",
+        "--outformat",
+        "-O",
         choices=["pdb", "pdbx", "cif", "bcif", "mol"],
         help="The file format of the output file. "
-             "Must be specified if output file is written to STDOUT."
-             "If omitted, the file format is guessed from the suffix "
-             "of the file."
+        "Must be specified if output file is written to STDOUT."
+        "If omitted, the file format is guessed from the suffix "
+        "of the file.",
     )
 
     parser.add_argument(
-        "--verbose", "-v", action="store_true",
-        help="Verbose display of errors."
+        "--verbose", "-v", action="store_true", help="Verbose display of errors."
     )
 
     parser.add_argument(
-        "--no-relax", action="store_true",
+        "--no-relax",
+        action="store_true",
         help="Omit the relaxation step. "
-             "Note bond lengths and angles will still be correct. "
-             "However clashes or electrostatically unfavorable "
-             "conformations will not be resolved."
+        "Note bond lengths and angles will still be correct. "
+        "However clashes or electrostatically unfavorable "
+        "conformations will not be resolved.",
     )
     parser.add_argument(
-        "--iterations", "-n", type=int, metavar="NUMBER",
+        "--iterations",
+        "-n",
+        type=int,
+        metavar="NUMBER",
         help="The maximum number of relaxation iterations. "
-             "The runtime of the relaxation scales approximately "
-             "linear with this value, if the relaxation does not "
-             "terminate before. "
-             "By default, the relaxation runs until a local optimum "
-             "has been reached."
+        "The runtime of the relaxation scales approximately "
+        "linear with this value, if the relaxation does not "
+        "terminate before. "
+        "By default, the relaxation runs until a local optimum "
+        "has been reached.",
     )
     parser.add_argument(
-        "--angle-increment", "-a", type=float, metavar="NUMBER", default=10.0,
+        "--angle-increment",
+        "-a",
+        type=float,
+        metavar="NUMBER",
+        default=10.0,
         help="The angle in degrees that a freely rotatable bond is rotated "
-             "in each relaxation step."
-             "Lower values increase the accuracy of hydrogen positioning, "
-             "but increase the required number of steps until an optimum "
-             "is found."
+        "in each relaxation step."
+        "Lower values increase the accuracy of hydrogen positioning, "
+        "but increase the required number of steps until an optimum "
+        "is found.",
     )
     parser.add_argument(
-        "--fragments", "-f", metavar="FILE", action="append",
+        "--fragments",
+        "-f",
+        metavar="FILE",
+        action="append",
         help="Additional structure file to containing fragments for the "
-             "fragment library. "
-             "This can be used supply fragments for molecules with uncommon "
-             "groups, if the standard fragment library does not contain such "
-             "fragments, yet. "
-             "May be supplied multiple times."
+        "fragment library. "
+        "This can be used supply fragments for molecules with uncommon "
+        "groups, if the standard fragment library does not contain such "
+        "fragments, yet. "
+        "May be supplied multiple times.",
     )
     parser.add_argument(
-        "--fragformat", "-F",
+        "--fragformat",
+        "-F",
         choices=["pdb", "pdbx", "cif", "bcif", "sdf", "mol"],
         help="The file format of the additional structure files. "
-             "If omitted, the file format is guessed from the suffix "
-             "of the file."
+        "If omitted, the file format is guessed from the suffix "
+        "of the file.",
     )
     parser.add_argument(
-        "--ignore", "-g", metavar="RESIDUE", action="append", nargs=2,
+        "--ignore",
+        "-g",
+        metavar="RESIDUE",
+        action="append",
+        nargs=2,
         help="No hydrogen atoms are added to the specified residue. "
-             "The format is '{chain} {residue}', e.g. 'A 123'. "
-             "May be supplied multiple times, if multiple residues should be "
-             "ignored."
+        "The format is '{chain} {residue}', e.g. 'A 123'. "
+        "May be supplied multiple times, if multiple residues should be "
+        "ignored.",
     )
     parser.add_argument(
-        "--model", "-m", type=int, metavar="NUMBER", default=1,
+        "--model",
+        "-m",
+        type=int,
+        metavar="NUMBER",
+        default=1,
         help="The model number, if the input structure file contains multiple "
-             "models."
+        "models.",
     )
     parser.add_argument(
-        "--charges", "-c", type=float, metavar="PH",
+        "--charges",
+        "-c",
+        type=float,
+        metavar="PH",
         help="Recalculate the charges of atoms in canonical amino acids based "
-             "on the given pH value. "
-             "This estimation does not take the surrounding amino acids into "
-             "account."
+        "on the given pH value. "
+        "This estimation does not take the surrounding amino acids into "
+        "account.",
     )
     parser.add_argument(
-        "--pbc", "-p", action="store_true",
+        "--pbc",
+        "-p",
+        action="store_true",
         help="Set hydrogen addition and relaxation aware to periodic boundary "
-             "conditions. "
-             "The box is read from the input structure file."
+        "conditions. "
+        "The box is read from the input structure file.",
     )
 
     args = parser.parse_args(args=args)
-
 
     try:
         run(args)
@@ -146,10 +175,9 @@ def main(args=None):
             raise
         else:
             sys.exit(1)
-    except Exception as e:
+    except Exception:
         print("An unexpected error occured:\n", file=sys.stderr)
         raise
-
 
 
 def run(args):
@@ -166,10 +194,8 @@ def run(args):
                     f"Missing file permission for reading '{frag_path}'"
                 )
             except FileNotFoundError:
-                raise UserInputError(
-                    f"Input file '{args.infile}' cannot be found"
-                )
-            except:
+                raise UserInputError(f"Input file '{args.infile}' cannot be found")
+            except Exception:
                 raise UserInputError(
                     f"Input file '{args.infile}' contains invalid data"
                 )
@@ -181,24 +207,16 @@ def run(args):
     except UserInputError:
         raise
     except PermissionError:
-        raise UserInputError(
-            f"Missing file permission for reading '{args.infile}'"
-        )
+        raise UserInputError(f"Missing file permission for reading '{args.infile}'")
     except FileNotFoundError:
-        raise UserInputError(
-            f"Input file '{args.infile}' cannot be found"
-        )
-    except:
+        raise UserInputError(f"Input file '{args.infile}' cannot be found")
+    except Exception:
         if args.infile is None:
-            raise UserInputError(
-                "Input file contains invalid data"
-            )
+            raise UserInputError("Input file contains invalid data")
         else:
-            raise UserInputError(
-                f"Input file '{args.infile}' contains invalid data"
-            )
+            raise UserInputError(f"Input file '{args.infile}' contains invalid data")
 
-    heavy_mask = (model.element != "H")
+    heavy_mask = model.element != "H"
     if not heavy_mask.all():
         warnings.warn("Existing hydrogen atoms were removed")
         model = model[heavy_mask]
@@ -213,12 +231,10 @@ def run(args):
     if args.ignore is not None:
         for chain_id, res_id in args.ignore:
             res_id = int(res_id)
-            removal_mask = (model.chain_id == chain_id) & \
-                           (model.res_id   == res_id)
+            removal_mask = (model.chain_id == chain_id) & (model.res_id == res_id)
             if not removal_mask.any():
                 raise UserInputError(
-                    f"Cannot find '{chain_id} {res_id}' "
-                    "in the input structure"
+                    f"Cannot find '{chain_id} {res_id}' " "in the input structure"
                 )
             input_mask &= ~removal_mask
 
@@ -230,18 +246,17 @@ def run(args):
             )
         box = True
     else:
-        box=None
+        box = None
 
-    model, _ = add_hydrogen(
-        model, input_mask, frag_library, name_library, box
-    )
+    model, _ = add_hydrogen(model, input_mask, frag_library, name_library, box)
     if not args.no_relax:
         if args.iterations is not None and args.iterations < 0:
             raise UserInputError("The number of iterations must be positive")
         model.coord = relax_hydrogen(
-            model, args.iterations,
+            model,
+            args.iterations,
             angle_increment=np.deg2rad(args.angle_increment),
-            box=box
+            box=box,
         )
 
     try:
@@ -249,9 +264,7 @@ def run(args):
     except UserInputError:
         raise
     except PermissionError:
-        raise UserInputError(
-            f"Missing file permission for writing '{args.outfile}'"
-        )
+        raise UserInputError(f"Missing file permission for writing '{args.outfile}'")
     except:
         raise
 
@@ -281,12 +294,14 @@ def read_structure(path, format, model_number):
                     f"for the input structure with {model_count} models"
                 )
             model = pdb.get_structure(
-                pdb_file, model=model_number, extra_fields=["charge"],
-                include_bonds=True
+                pdb_file,
+                model=model_number,
+                extra_fields=["charge"],
+                include_bonds=True,
             )
             # Expect that all ANY bonds are actually SINGLE bonds
             bond_array = model.bonds.as_array()
-            unknown_order_mask = (bond_array[:,2] == struc.BondType.ANY)
+            unknown_order_mask = bond_array[:, 2] == struc.BondType.ANY
             if unknown_order_mask.any():
                 warnings.warn(
                     "For some bonds the bond order is unknown, "
@@ -310,8 +325,10 @@ def read_structure(path, format, model_number):
                     f"for the input structure with {model_count} models"
                 )
             model = pdbx.get_structure(
-                pdbx_file, model=model_number, extra_fields=["charge"],
-                include_bonds=True
+                pdbx_file,
+                model=model_number,
+                extra_fields=["charge"],
+                include_bonds=True,
             )
             model.bonds = struc.connect_via_residue_names(model)
         case "mol":
