@@ -5,12 +5,11 @@ and images.
 """
 
 import tempfile
-import biotite.structure as struc
-import biotite.structure.io.mol as mol
-import biotite.structure.info as info
 import ammolite
+import biotite.structure as struc
+import biotite.structure.info as info
+import biotite.structure.io.mol as mol
 from util import COLORS, init_pymol_parameters
-
 
 ZOOM = 1.5
 PNG_SIZE = (400, 400)
@@ -63,7 +62,7 @@ print(molecule)
 
 print("\nEND OF SNIPPET\n")
 pymol_heavy = ammolite.PyMOLObject.from_structure(molecule, "heavy")
-#pymol_heavy.orient()
+# pymol_heavy.orient()
 pymol_heavy.zoom(buffer=ZOOM)
 color_atoms(pymol_heavy, molecule)
 ammolite.cmd.png("api_01.png", *PNG_SIZE)
@@ -168,9 +167,10 @@ hydride.add_hydrogen(molecule, name_library=library)
 
 
 print("\nEND OF SNIPPET\n", end="")
-import matplotlib.pyplot as plt
 import matplotlib as mpl
-plt.rcParams['axes.prop_cycle'] = mpl.cycler(color=[COLORS["N"]])
+import matplotlib.pyplot as plt
+
+plt.rcParams["axes.prop_cycle"] = mpl.cycler(color=[COLORS["N"]])
 
 
 ########################################################################
@@ -201,6 +201,7 @@ print("\nEND OF SNIPPET\n", end="")
 fig.savefig("api_04.png")
 
 import biotite.structure.info as info
+
 molecule = info.residue("ASP")
 
 

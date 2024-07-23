@@ -2,9 +2,9 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
-import pytest
-import numpy as np
 import biotite.structure.info as info
+import numpy as np
+import pytest
 import hydride
 
 
@@ -14,7 +14,7 @@ import hydride
         ("N", ["H", "H1", "H2"]),
         ("CB", ["HB", "HB1", "HB2"]),
         ("C42", ["H42", "H42A", "H42B"]),
-    ]
+    ],
 )
 def test_generated_names(heavy_atom_name, ref_hydrogen_names):
     """
@@ -24,16 +24,20 @@ def test_generated_names(heavy_atom_name, ref_hydrogen_names):
     name_lib = hydride.AtomNameLibrary()
     gen = name_lib.generate_hydrogen_names("", heavy_atom_name)
     test_hydrogen_names = [next(gen) for _ in range(len(ref_hydrogen_names))]
-    
+
     assert test_hydrogen_names == ref_hydrogen_names
 
 
 np.random.seed(0)
 res_names = info.all_residues()
+
+
 @pytest.mark.parametrize(
     "res_name",
-    [res_names[i] for i in
-     np.random.choice(np.arange(len(res_names)), size=1000, replace=False)]
+    [
+        res_names[i]
+        for i in np.random.choice(np.arange(len(res_names)), size=1000, replace=False)
+    ],
 )
 def test_names_from_library(res_name):
     """
@@ -52,10 +56,9 @@ def test_names_from_library(res_name):
     for i in np.where(residue.element != "H")[0]:
         bond_indices, _ = residue.bonds.get_bonds(i)
         ref_hydrogen_names = [
-            residue.atom_name[j] for j in bond_indices
-            if residue.element[j] == "H"
+            residue.atom_name[j] for j in bond_indices if residue.element[j] == "H"
         ]
-        
+
         gen = name_lib.generate_hydrogen_names(res_name, residue.atom_name[i])
         test_hydrogen_names = [next(gen) for _ in range(len(ref_hydrogen_names))]
 

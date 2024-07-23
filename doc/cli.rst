@@ -22,7 +22,7 @@ Structure input and output
 
 ``--infile``/``-i`` and ``-outfile``/``-o`` define the paths of the input or
 output structure file, respectively.
-*Hydride* supports the *PDB*, *PDBx/mmCIF*, *MMTF*, *MOL* and *SDF*
+*Hydride* supports the *PDB*, *PDBx/mmCIF*, *BinaryCIF*, *MOL* and *SDF*
 format.
 By default, the format is determined from the file extension, but it can also
 be explicitly provided via the ``--informat``/``-I`` or
@@ -38,8 +38,6 @@ used is specified with ``--model``/``-m``. By default, the first model is used.
 
 The addition of hydrogen atoms requires complete information about the
 bonds between atoms.
-Currently, this information can only be read from *PDB*, *MMTF*, *MOL* and
-*SDF* files.
 If bond information is absent, *Hydride* automatically connects
 atoms based on the molecule/residue name and the atom names.
 However, the automatic bond detection only works for molecules in the
@@ -97,7 +95,7 @@ libraries by providing a path to a corresponding structure file via
 Analogous to the input and output file parameters, the file format can be
 specified with ``--fragformat``/``-f``.
 Note that the file must contain proper bond information and correct formal
-charges, so effectively a *MMTF*, *MOL* and *SDF* must be supplied.
+charges.
 
 By default, *Hydride* does not consider periodic boundary conditions,
 as they appear e.g. in MD simulations.

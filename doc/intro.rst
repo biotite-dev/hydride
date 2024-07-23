@@ -57,7 +57,7 @@ and build and install the package via
 
    $ pip install .
 
-Note that this way the installation may take a few minutes, as 
+Note that this way the installation may take a few minutes, as
 the fragment library is built and the C-extensions are compiled.
 
 
@@ -75,7 +75,7 @@ The most simple invocation of the *Hydride* command line program is
 ``output_structure.pdb``.
 If hydrogen atoms remain in the input structure, these are automatically
 removed.
-*Hydride* supports the *PDB*, *PDBx/mmCIF*, *MMTF*, *MOL* and *SDF*
+*Hydride* supports the *PDB*, *PDBx/mmCIF*, *BinaryCIF*, *MOL* and *SDF*
 format.
 
 If no input structure file path is given, the file is read from *STDIN*.
@@ -139,5 +139,5 @@ should be resolved.
 Additional information
 ----------------------
 
-In-depth explanation of the underlying algorithm will be available in 
-the upcoming journal article. 
+In-depth explanation of the underlying algorithm will be available in
+the upcoming journal article.

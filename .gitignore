@@ -19,13 +19,7 @@ htmlcov
 # Ignore all compiled python files (e.g. from running the unit tests)
 *.pyc
 *.pyo
-*.py{}
 *.py-e
-
-# Ignore files created via Cython
-*.c
-*.so
-*.pyd
 
 # Ignore potential directory created during install
 *.egg-info
@@ -42,5 +36,6 @@ htmlcov
 *.code-workspace
 .vscode/*
 
-# Ignore fuse_hidden files on Linux systems
+# Ignore OS specific files
 *.fuse_hidden*
+.DS_Store

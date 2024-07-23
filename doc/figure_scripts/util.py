@@ -1,5 +1,5 @@
-from matplotlib.colors import to_rgb
 import ammolite
+from matplotlib.colors import to_rgb
 
 
 def init_pymol_parameters():
@@ -20,5 +20,5 @@ COLORS = {
     "N": to_rgb("#0a6efd"),
     "O": to_rgb("#e1301d"),
     "P": to_rgb("#098a07"),
-    #df059e
+    # df059e
 }

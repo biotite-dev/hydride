@@ -22,7 +22,7 @@ If these parameters are missing for an element the following warning is printed
 
 As consequence the formal charge is used for such atoms instead of a proper
 partial charge in the relaxation step.
-This warning has no effect on the hydrogen addition. 
+This warning has no effect on the hydrogen addition.
 
 
 A group has an unexpected number of hydrogen atoms, e.g. a carboxy group is protonated
@@ -58,9 +58,6 @@ Such a template structure file for a molecule can be e.g. downloaded from a
 ligand database.
 In the command line interface the template structure file is provided via
 the ``--fragments``/``-f`` parameter.
-Note that the *MMTF*, *MOL* and *SDF* formats are currently the only
-reasonable formats, since the bond information can be read exclusively from
-these formats.
 In the Python API the template can be added to the standard fragment library.
 
 .. code-block:: python

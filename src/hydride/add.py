@@ -6,14 +6,13 @@ __name__ = "hydride"
 __author__ = "Patrick Kunzmann, Jacob Marcel Anter"
 __all__ = ["add_hydrogen"]
 
-import numpy as np
 import biotite.structure as struc
-from .fragments import FragmentLibrary
-from .names import AtomNameLibrary
+import numpy as np
+from hydride.fragments import FragmentLibrary
+from hydride.names import AtomNameLibrary
 
 
-def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None,
-                 box=None):
+def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None, box=None):
     """
     Add hydrogen atoms to a structure.
 
@@ -74,13 +73,9 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None,
         name_library = AtomNameLibrary.standard_library()
 
     if (atoms.element[mask] == "H").any():
-        raise struc.BadStructureError(
-           "Input structure already contains hydrogen atoms"
-        )
+        raise struc.BadStructureError("Input structure already contains hydrogen atoms")
 
-    hydrogen_coord = fragment_library.calculate_hydrogen_coord(
-        atoms, mask, box
-    )
+    hydrogen_coord = fragment_library.calculate_hydrogen_coord(atoms, mask, box)
 
     # Count number of hydrogen atoms to be added
     count = 0
@@ -91,14 +86,12 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None,
     # Create new empty AtomArray with an appropriate length for all
     # heavy and hydrogen atoms
     hydrogenated_atoms = struc.AtomArray(atoms.array_length() + count)
-    original_atom_mask = np.zeros(
-        hydrogenated_atoms.array_length(), dtype=bool
-    )
+    original_atom_mask = np.zeros(hydrogenated_atoms.array_length(), dtype=bool)
     # Add all annotation categories of the original AtomArray
     for category in atoms.get_annotation_categories():
         if category not in hydrogenated_atoms.get_annotation_categories():
             hydrogenated_atoms.add_annotation(
-               category, dtype=atoms.get_annotation(category).dtype
+                category, dtype=atoms.get_annotation(category).dtype
             )
     if atoms.box is not None:
         hydrogenated_atoms.box = atoms.box.copy()
@@ -114,20 +107,21 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None,
     for i in range(len(residue_starts) - 1):
         # Set annotation and coordinates from input AtomArray
         start = residue_starts[i]
-        stop = residue_starts[i+1]
+        stop = residue_starts[i + 1]
         res_length = stop - start
-        index_mapping[start : stop] = np.arange(p, p + res_length)
+        index_mapping[start:stop] = np.arange(p, p + res_length)
         original_atom_mask[p : p + res_length] = True
         hydrogenated_atoms.coord[p : p + res_length] = atoms.coord[start:stop]
         for category in atoms.get_annotation_categories():
-            hydrogenated_atoms.get_annotation(category)[p : p + res_length] \
-                       = atoms.get_annotation(category)[start : stop]
+            hydrogenated_atoms.get_annotation(category)[p : p + res_length] = (
+                atoms.get_annotation(category)[start:stop]
+            )
         p += res_length
         # Set annotation and coordinates for hydrogen atoms
         for j in range(start, stop):
             hydrogen_coord_for_atom = hydrogen_coord[j]
             hydrogen_name_generator = name_library.generate_hydrogen_names(
-               atoms.res_name[j], atoms.atom_name[j]
+                atoms.res_name[j], atoms.atom_name[j]
             )
             for coord in hydrogen_coord_for_atom:
                 hydrogenated_atoms.coord[p] = coord
@@ -145,29 +139,28 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None,
 
     # Add bonds to combined AtomArray
     original_bonds = atoms.bonds.as_array()
-    bond_indices = index_mapping[original_bonds[:,:2]]
+    bond_indices = index_mapping[original_bonds[:, :2]]
     heavy_bonds = np.stack(
-       [
-          bond_indices[:, 0],
-          bond_indices[:, 1],
-          # The bond types
-          original_bonds[:,2]
-       ],
-       axis=-1
+        [
+            bond_indices[:, 0],
+            bond_indices[:, 1],
+            # The bond types
+            original_bonds[:, 2],
+        ],
+        axis=-1,
     )
     hydrogen_bonds = np.array(hydrogen_bonds, dtype=np.uint32).reshape(-1, 2)
     # All bonds to hydrogen atoms are single bonds
     hydrogen_bonds = np.stack(
-       [
-          hydrogen_bonds[:, 0],
-          hydrogen_bonds[:, 1],
-          np.ones(len(hydrogen_bonds), dtype=np.uint32)
-       ],
-       axis=-1
+        [
+            hydrogen_bonds[:, 0],
+            hydrogen_bonds[:, 1],
+            np.ones(len(hydrogen_bonds), dtype=np.uint32),
+        ],
+        axis=-1,
     )
     hydrogenated_atoms.bonds = struc.BondList(
-       hydrogenated_atoms.array_length(),
-       np.concatenate([heavy_bonds, hydrogen_bonds])
+        hydrogenated_atoms.array_length(), np.concatenate([heavy_bonds, hydrogen_bonds])
     )
 
     return hydrogenated_atoms, original_atom_mask

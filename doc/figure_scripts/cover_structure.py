@@ -1,24 +1,14 @@
-import numpy as np
-import pyximport
-pyximport.install(
-    build_in_temp=False,
-    setup_args={"include_dirs":np.get_include()},
-    language_level=3
-)
-
-from os.path import join
-import numpy as np
-import biotite.structure as struc
-import biotite.structure.io.mmtf as mmtf
-import biotite.database.rcsb as rcsb
-import hydride
 import ammolite
+import biotite.database.rcsb as rcsb
+import biotite.structure as struc
+import biotite.structure.io.pdbx as pdbx
+import numpy as np
 from util import COLORS, init_pymol_parameters
+import hydride
 
-
-mmtf_file = mmtf.MMTFFile.read(rcsb.fetch("1bna", "mmtf"))
-heavy_atoms = mmtf.get_structure(
-    mmtf_file, model=1, include_bonds=True, extra_fields=["charge"]
+pdbx_file = pdbx.BinaryCIFFile.read(rcsb.fetch("1bna", "bcif"))
+heavy_atoms = pdbx.get_structure(
+    pdbx_file, model=1, include_bonds=True, extra_fields=["charge"]
 )
 heavy_atoms = heavy_atoms[heavy_atoms.res_name != "HOH"]
 
@@ -43,9 +33,7 @@ pymol_all.orient()
 pymol_all.zoom(buffer=1.0)
 ammolite.cmd.rotate("z", 90)
 
-for pymol_object, atoms in zip(
-    (pymol_heavy, pymol_all), (heavy_atoms, all_atoms)
-):
+for pymol_object, atoms in zip((pymol_heavy, pymol_all), (heavy_atoms, all_atoms)):
     for element in ("H", "C", "N", "O", "P"):
         pymol_object.color(COLORS[element], atoms.element == element)
 
@@ -56,8 +44,7 @@ ammolite.cmd.png("cover_heavy.png", 400, 800)
 pymol_heavy.disable()
 pymol_all.enable()
 for i, (_, atom_i, atom_j) in enumerate(bonds):
-    color = COLORS["N"] if all_atoms.element[atom_j] == "N"\
-            else COLORS["O"]
+    color = COLORS["N"] if all_atoms.element[atom_j] == "N" else COLORS["O"]
     pymol_all.distance(str(i), atom_i, atom_j, show_label=False)
     ammolite.cmd.set_color(f"bond_color_{i}", list(color))
     ammolite.cmd.color(f"bond_color_{i}", str(i))
