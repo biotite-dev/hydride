@@ -4,6 +4,7 @@
 
 import glob
 import itertools
+import warnings
 from os.path import join
 import biotite.structure as struc
 import biotite.structure.info as info
@@ -218,7 +219,11 @@ def test_original_mask(path):
     )
     ref_model = ref_model[ref_model.element != "H"]
 
-    hydrogenated_model, original_mask = hydride.add_hydrogen(ref_model)
+    with warnings.catch_warnings():
+        # Ignore warnings about unknown bond types,
+        # as they may appear in inter-residue bonds
+        warnings.simplefilter("ignore")
+        hydrogenated_model, original_mask = hydride.add_hydrogen(ref_model)
     test_model = hydrogenated_model[original_mask]
 
     assert hydrogenated_model.array_length() > ref_model.array_length()
