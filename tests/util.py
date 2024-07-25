@@ -2,9 +2,9 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
-from os.path import join, dirname, realpath
-import numpy as np
+from os.path import dirname, join, realpath
 import biotite.structure as struc
+import numpy as np
 
 
 def data_dir():
@@ -20,8 +20,7 @@ def place_over_periodic_boundary(atoms, dimension, box_size):
     box = np.identity(3) * box_size
     min_coord = np.min(atoms.coord[:, dimension])
     max_coord = np.max(atoms.coord[:, dimension])
-    atoms.coord[:, dimension] += \
-        box_size - min_coord - (max_coord - min_coord) / 2
+    atoms.coord[:, dimension] += box_size - min_coord - (max_coord - min_coord) / 2
     # Keep the molecule in the center of the box in all other dimensions
     for d in [0, 1, 2]:
         if d == dimension:

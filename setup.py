@@ -2,20 +2,18 @@
 # under the 3-Clause BSD License. Please see 'LICENSE.rst' for further
 # information.
 
-import warnings
-import re
-from os.path import join, abspath, dirname, normpath, isfile
 import fnmatch
 import os
 import pickle
-from setuptools import setup, find_packages, Extension
-from Cython.Build import cythonize
-import msgpack
-import numpy as np
+import warnings
+from os.path import abspath, dirname, isfile, join, normpath
 import biotite.structure as struc
 import biotite.structure.info as info
-from biotite.structure.info.misc import _res_names
-
+import msgpack
+import numpy as np
+from biotite.structure.info.ccd import get_ccd
+from Cython.Build import cythonize
+from setuptools import Extension, find_packages, setup
 
 # Molecules that appear is most structures
 # Hence, there is a high importance to get the hydrogen conformations
@@ -24,10 +22,37 @@ from biotite.structure.info.misc import _res_names
 # from the standard library
 PROMINENT_MOLECULES = [
     # Amino acids
-    "ALA", "ARG", "ASN", "ASP", "CYS", "GLN", "GLU", "GLY", "HIS", "ILE",
-    "LEU", "LYS", "MET", "PHE", "PRO", "SER", "THR", "TRP", "TYR", "VAL",
+    "ALA",
+    "ARG",
+    "ASN",
+    "ASP",
+    "CYS",
+    "GLN",
+    "GLU",
+    "GLY",
+    "HIS",
+    "ILE",
+    "LEU",
+    "LYS",
+    "MET",
+    "PHE",
+    "PRO",
+    "SER",
+    "THR",
+    "TRP",
+    "TYR",
+    "VAL",
     # Nucleotides
-    "A", "C", "G", "T", "U", "DA", "DC", "DG", "DT", "DU", 
+    "A",
+    "C",
+    "G",
+    "T",
+    "U",
+    "DA",
+    "DC",
+    "DG",
+    "DT",
+    "DU",
     # Solvent
     "HOH",
 ]
@@ -37,17 +62,11 @@ original_wd = os.getcwd()
 # Change directory to setup directory to ensure correct file identification
 os.chdir(dirname(abspath(__file__)))
 # Import is relative to working directory
-from src.hydride import FragmentLibrary, AtomNameLibrary, __version__
-
-
+from src.hydride import AtomNameLibrary, FragmentLibrary, __version__
 
 # Compile Cython into C
 try:
-    cythonize(
-        "src/**/*.pyx",
-        include_path=[np.get_include()],
-        language_level=3
-    )
+    cythonize("src/**/*.pyx", include_path=[np.get_include()], language_level=3)
 except ValueError:
     # This is a source distribution and the directory already contains
     # only C files
@@ -56,21 +75,20 @@ except ValueError:
 
 def get_extensions():
     ext_sources = []
-    for dirpath, dirnames, filenames in os.walk(
-        normpath(join("src", "hydride"))
-    ):
-        for filename in fnmatch.filter(filenames, '*.c'):
+    for dirpath, _, filenames in os.walk(normpath(join("src", "hydride"))):
+        for filename in fnmatch.filter(filenames, "*.c"):
             ext_sources.append(os.path.join(dirpath, filename))
-    ext_names = [source
-                 .replace("src"+normpath("/"), "")
-                 .replace(".c", "")
-                 .replace(normpath("/"), ".")
-                 for source in ext_sources]
-    ext_modules = [Extension(ext_names[i], [ext_sources[i]],
-                             include_dirs=[np.get_include()])
-                   for i in range(len(ext_sources))]
+    ext_names = [
+        source.replace("src" + normpath("/"), "")
+        .replace(".c", "")
+        .replace(normpath("/"), ".")
+        for source in ext_sources
+    ]
+    ext_modules = [
+        Extension(ext_names[i], [ext_sources[i]], include_dirs=[np.get_include()])
+        for i in range(len(ext_sources))
+    ]
     return ext_modules
-
 
 
 def get_protonation_variants():
@@ -88,40 +106,46 @@ def get_protonation_variants():
         molecule.charge = molecule_dict["charge"]
         molecule.hetero = molecule_dict["hetero"]
 
-        molecule.coord[:,0] = molecule_dict["coord_x"]
-        molecule.coord[:,1] = molecule_dict["coord_y"]
-        molecule.coord[:,2] = molecule_dict["coord_z"]
+        molecule.coord[:, 0] = molecule_dict["coord_x"]
+        molecule.coord[:, 1] = molecule_dict["coord_y"]
+        molecule.coord[:, 2] = molecule_dict["coord_z"]
 
         molecule.bonds = struc.BondList(
             molecule.array_length(),
-            bonds = np.stack([
-                molecule_dict["bond_i"],
-                molecule_dict["bond_j"],
-                molecule_dict["bond_type"]
-            ]).T
+            bonds=np.stack(
+                [
+                    molecule_dict["bond_i"],
+                    molecule_dict["bond_j"],
+                    molecule_dict["bond_type"],
+                ]
+            ).T,
         )
 
         molecules.append(molecule)
-    
+
     return molecules
+
+
+def get_mol_names_in_ccd():
+    ccd = get_ccd()
+    atom_category = ccd["chem_comp_atom"]
+    return np.unique(atom_category["comp_id"].as_array()).tolist()
+
 
 # Compile fragment library
 fragment_file_path = join("src", "hydride", "fragments.pickle")
 if not isfile(fragment_file_path):
     std_fragment_library = FragmentLibrary()
     # Add protonation variants at first because the bond lengths
-    # for neutral fragments might variate slightly
+    # for neutral fragments might vary slightly
     for mol in get_protonation_variants():
         std_fragment_library.add_molecule(mol)
-    mol_names = list(_res_names.keys()) + PROMINENT_MOLECULES
+    mol_names = get_mol_names_in_ccd() + PROMINENT_MOLECULES
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
         for i, mol_name in enumerate(mol_names):
             if not i % 100:
-                print(
-                    f"Compiling fragment library... ({i}/{len(mol_names)})",
-                    end="\r"
-                )
+                print(f"Compiling fragment library... ({i}/{len(mol_names)})", end="\r")
             try:
                 mol = info.residue(mol_name)
             except KeyError:
@@ -144,7 +168,7 @@ if not isfile(names_file_path):
             print(
                 f"Compiling atom name library... "
                 f"({i+1}/{len(PROMINENT_MOLECULES)})",
-                end="\r"
+                end="\r",
             )
             try:
                 mol = info.residue(mol_name)
@@ -156,15 +180,14 @@ if not isfile(names_file_path):
         pickle.dump(std_name_library._name_dict, names_file)
 
 
-
 setup(
-    version = __version__,
-    zip_safe = False,
-    packages = find_packages("src"),
-    package_dir = {"" : "src"},
-    ext_modules = get_extensions(),
+    version=__version__,
+    zip_safe=False,
+    packages=find_packages("src"),
+    package_dir={"": "src"},
+    ext_modules=get_extensions(),
     # Include fragment and atom name libraries
-    package_data = {"hydride" : ["*.pickle"]},
+    package_data={"hydride": ["*.pickle"]},
 )
 
 

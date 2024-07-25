@@ -1,12 +1,9 @@
-import time
-from os.path import join, abspath, dirname
-import numpy as np
-from sklearn.decomposition import PCA
+from os.path import abspath, dirname, join
+import ammolite
 import biotite.structure as struc
 import biotite.structure.io.mol as mol
-import ammolite
+import numpy as np
 from util import COLORS, init_pymol_parameters
-
 
 PNG_SIZE = (300, 300)
 ZOOM = 3.5
@@ -20,9 +17,10 @@ def load_and_orient(mol_name):
     molecule.coord -= struc.centroid(molecule)
     return molecule
 
-benzene  = load_and_orient("benzene")
+
+benzene = load_and_orient("benzene")
 butylene = load_and_orient("isobutylene")
-toluene  = load_and_orient("toluene")
+toluene = load_and_orient("toluene")
 benzene_heavy, butylene_heavy, toluene_heavy = [
     atoms[atoms.element != "H"] for atoms in (benzene, butylene, toluene)
 ]
@@ -30,7 +28,7 @@ benzene_heavy, butylene_heavy, toluene_heavy = [
 
 init_pymol_parameters()
 
-center = struc.array([struc.Atom([0,0,0], atom_name="C", element="C")])
+center = struc.array([struc.Atom([0, 0, 0], atom_name="C", element="C")])
 center.bonds = struc.BondList(1)
 CENTER = ammolite.PyMOLObject.from_structure(center, "center_")
 ammolite.cmd.disable("center_")
@@ -41,7 +39,9 @@ pymol_toluene.color(COLORS["O"], toluene.element != "H")
 ammolite.cmd.png("toluene.png", *PNG_SIZE)
 ammolite.cmd.disable("toluene")
 
-pymol_toluene_heavy = ammolite.PyMOLObject.from_structure(toluene_heavy, "toluene_heavy")
+pymol_toluene_heavy = ammolite.PyMOLObject.from_structure(
+    toluene_heavy, "toluene_heavy"
+)
 CENTER.zoom(buffer=ZOOM)
 pymol_toluene_heavy.color(COLORS["O"])
 ammolite.cmd.png("toluene_heavy.png", *PNG_SIZE)
@@ -70,7 +70,7 @@ def visualize_fragments(molecule, mol_name, color):
             fragment = molecule[np.append(bonded_i, [i])]
             fragment_name = f"{mol_name}_frag_{frag_num:02d}"
             frag_num += 1
-            
+
             pymol_fragment = ammolite.PyMOLObject.from_structure(
                 fragment, fragment_name
             )
@@ -80,6 +80,7 @@ def visualize_fragments(molecule, mol_name, color):
             ammolite.cmd.png(f"{fragment_name}.png", *PNG_SIZE)
             ammolite.cmd.disable(fragment_name)
 
-visualize_fragments(toluene_heavy, "toluene",  COLORS["O"])
-visualize_fragments(benzene,       "benzene",  COLORS["N"])
-visualize_fragments(butylene,      "butylene", COLORS["N"])
+
+visualize_fragments(toluene_heavy, "toluene", COLORS["O"])
+visualize_fragments(benzene, "benzene", COLORS["N"])
+visualize_fragments(butylene, "butylene", COLORS["N"])

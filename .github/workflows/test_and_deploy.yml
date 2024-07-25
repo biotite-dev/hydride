@@ -11,7 +11,7 @@ on:
     - published
 
 env:
-  CIBW_BUILD: cp39-* cp310-* cp311-*
+  CIBW_BUILD: cp310-* cp311-* cp312-*
   CIBW_ARCHS_LINUX: "x86_64"
   CIBW_ARCHS_MACOS: "x86_64 arm64"
   CIBW_ARCHS_WINDOWS: "x86 AMD64"
@@ -27,15 +27,30 @@ env:
 
 
 jobs:
+  lint:
+    name: Check code style
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+    - uses: actions/setup-python@v5
+      with:
+        python-version: "3.12"
+    - name: Install ruff
+      run: pip install ruff==0.5.2
+    - name: Check code formatting
+      run: ruff format --diff
+    - name: Lint code base
+      run: ruff check
+
   test-and-build:
     name: "Build & Test"
     strategy:
       matrix:
-        os: [ubuntu-20.04, windows-2019, macos-11]
-    
+        os: [ubuntu-latest, windows-latest, macos-latest]
+
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up QEMU
         if: runner.os == 'Linux'
@@ -44,7 +59,7 @@ jobs:
           platforms: all
 
       - name: Build & (optionally) test wheels
-        uses: pypa/cibuildwheel@v2.12.1
+        uses: pypa/cibuildwheel@v2.19.1
 
       - uses: actions/upload-artifact@v3
         with:
@@ -57,7 +72,7 @@ jobs:
     name: Build source distribution
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
       with:
         fetch-depth: 0
         submodules: true
@@ -79,7 +94,7 @@ jobs:
         shell: bash -l {0}
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
       - uses: conda-incubator/setup-miniconda@v2
         with:
           activate-environment: hydride
@@ -102,7 +117,11 @@ jobs:
     name: Upload to GitHub Releases & PyPI
     permissions:
       contents: write
-    needs: [test-and-build, make-sdist, make-doc]
+    needs:
+      - lint
+      - test-and-build
+      - make-sdist
+      - make-doc
     runs-on: ubuntu-latest
     steps:
     - uses: actions/download-artifact@v3
