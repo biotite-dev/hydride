@@ -6,6 +6,7 @@ __name__ = "hydride"
 __author__ = "Patrick Kunzmann"
 __all__ = ["FragmentLibrary"]
 
+import functools
 import pickle
 import warnings
 from os.path import abspath, dirname, join
@@ -54,11 +55,10 @@ class FragmentLibrary:
        Acta Cryst, 34, 827-828 (1978).
     """
 
-    _std_library = None
-
     def __init__(self):
         self._frag_dict = {}
 
+    @functools.cache
     @staticmethod
     def standard_library():
         """
@@ -71,12 +71,11 @@ class FragmentLibrary:
         library : FragmentLibrary
             The standard library.
         """
-        if FragmentLibrary._std_library is None:
-            FragmentLibrary._std_library = FragmentLibrary()
-            file_name = join(dirname(abspath(__file__)), "fragments.pickle")
-            with open(file_name, "rb") as fragments_file:
-                FragmentLibrary._std_library._frag_dict = pickle.load(fragments_file)
-        return FragmentLibrary._std_library
+        fragment_library = FragmentLibrary()
+        file_name = join(dirname(abspath(__file__)), "fragments.pickle")
+        with open(file_name, "rb") as fragments_file:
+            fragment_library._frag_dict = pickle.load(fragments_file)
+        return fragment_library
 
     def add_molecule(self, molecule):
         """

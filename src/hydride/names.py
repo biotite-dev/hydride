@@ -6,6 +6,8 @@ __name__ = "hydride"
 __author__ = "Patrick Kunzmann"
 __all__ = ["AtomNameLibrary"]
 
+import functools
+import itertools
 import pickle
 import string
 from os.path import abspath, dirname, join
@@ -28,11 +30,10 @@ class AtomNameLibrary:
     hydrogen naming schemes.
     """
 
-    _std_library = None
-
     def __init__(self):
         self._name_dict = {}
 
+    @functools.cache
     @staticmethod
     def standard_library():
         """
@@ -45,12 +46,11 @@ class AtomNameLibrary:
         library : AtomNameLibrary
             The standard library.
         """
-        if AtomNameLibrary._std_library is None:
-            AtomNameLibrary._std_library = AtomNameLibrary()
-            file_name = join(dirname(abspath(__file__)), "names.pickle")
-            with open(file_name, "rb") as names_file:
-                AtomNameLibrary._std_library._name_dict = pickle.load(names_file)
-        return AtomNameLibrary._std_library
+        name_library = AtomNameLibrary()
+        file_name = join(dirname(abspath(__file__)), "names.pickle")
+        with open(file_name, "rb") as names_file:
+            name_library._name_dict = pickle.load(names_file)
+        return name_library
 
     def add_molecule(self, molecule):
         """
