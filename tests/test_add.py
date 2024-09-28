@@ -253,7 +253,7 @@ def test_no_duplicate_names():
     hydrogen_atoms = atoms[atoms.element == "H"]
     atom_names = hydrogen_atoms.atom_name
     # Within a residue all hydrogen atom names should be unique
-    for res_id in (1,2):
+    for res_id in (1, 2):
         atom_names_in_residue = atom_names[hydrogen_atoms.res_id == res_id]
         assert len(np.unique(atom_names_in_residue)) == len(atom_names_in_residue)
     # But two different residues should reset the used names
@@ -280,4 +280,3 @@ def test_empty_annotations():
     assert np.all(hydrogen_atoms.atom_name == "")
     # Roughly check correct hydrogen addition
     assert test_molecule.array_length() == ref_molecule.array_length()
-

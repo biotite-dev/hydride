@@ -99,18 +99,14 @@ class AtomNameLibrary:
                 yield hydrogen_name
             try:
                 base_name = hydrogen_name[:-1]
-                number = int(hydrogen_name[-1])
-                while True:
+                for number in itertools.count(int(hydrogen_name[-1]) + 1):
                     # Proceed by increasing the atom number
                     # e.g. CB -> HB1, HB2, HB3, ...
-                    number += 1
                     yield f"{base_name}{number}"
             except ValueError:
                 # Atom name has no number at the end
                 # -> simply append number
-                number = 0
-                while True:
-                    number += 1
+                for number in itertools.count(1):
                     yield f"{hydrogen_name}{number}"
 
         else:
@@ -128,23 +124,17 @@ class AtomNameLibrary:
                 heavy_atom_name[0]
                 # C1 -> H1, H1A, H1B
                 yield f"H{number}"
-                i = 0
-                while True:
+                for i in itertools.count():
                     yield f"H{number}{string.ascii_uppercase[i]}"
-                    i += 1
             elif len(heavy_atom_name) > 1:
                 # e.g. CA -> HA, HA2, HA3, ...
                 suffix = heavy_atom_name[1:]
                 yield f"H{suffix}"
-                number = 1
-                while True:
+                for number in itertools.count(1):
                     yield f"H{suffix}{number}"
-                    number += 1
 
             else:
                 # N -> H, H2, H3, ...
                 yield "H"
-                number = 1
-                while True:
+                for number in itertools.count(1):
                     yield f"H{number}"
-                    number += 1

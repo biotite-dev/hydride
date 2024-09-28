@@ -30,6 +30,8 @@ def test_generated_names(heavy_atom_name, ref_hydrogen_names):
 
 np.random.seed(0)
 res_names = info.all_residues()
+
+
 @pytest.mark.parametrize(
     "res_name",
     [
