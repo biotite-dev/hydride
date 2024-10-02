@@ -228,3 +228,55 @@ def test_original_mask(path):
 
     assert hydrogenated_model.array_length() > ref_model.array_length()
     assert test_model == ref_model
+
+
+def test_no_duplicate_names():
+    """
+    Check if no duplicate hydrogen names are given within the same residue.
+    This is tested by the extreme case of a residue where each heavy atom has the same
+    name.
+    """
+    residue_1 = info.residue("ALA")
+    residue_2 = info.residue("ALA")
+    # Ensure that both residues in the array can be distinguished as such
+    # in the concatenated array
+    residue_1.res_id[:] = 1
+    residue_2.res_id[:] = 2
+    # Create a heavy atom array from two residues
+    atoms = residue_1 + residue_2
+    atoms = atoms[atoms.element != "H"]
+    # Give all atoms the same name to check if still unique hydrogen names are assigned
+    atoms.atom_name[:] = "CA"
+
+    atoms, _ = hydride.add_hydrogen(atoms)
+
+    hydrogen_atoms = atoms[atoms.element == "H"]
+    atom_names = hydrogen_atoms.atom_name
+    # Within a residue all hydrogen atom names should be unique
+    for res_id in (1, 2):
+        atom_names_in_residue = atom_names[hydrogen_atoms.res_id == res_id]
+        assert len(np.unique(atom_names_in_residue)) == len(atom_names_in_residue)
+    # But two different residues should reset the used names
+    # As here the two residues are the same, we expect the same names
+    assert np.all(
+        atom_names[hydrogen_atoms.res_id == 1] == atom_names[hydrogen_atoms.res_id == 2]
+    )
+
+
+def test_empty_annotations():
+    """
+    Check if hydrogen addition (coordinates and naming) works, if a molecule has no
+    residue name and atom names.
+    """
+    ref_molecule = info.residue("ALA")
+    ref_molecule.atom_name[:] = ""
+    ref_molecule.res_name[:] = ""
+
+    test_molecule = ref_molecule[ref_molecule.element != "H"]
+    test_molecule, _ = hydride.add_hydrogen(test_molecule)
+
+    hydrogen_atoms = test_molecule[test_molecule.element == "H"]
+    # Expect empty hydrogen names for empty heavy atom names
+    assert np.all(hydrogen_atoms.atom_name == "")
+    # Roughly check correct hydrogen addition
+    assert test_molecule.array_length() == ref_molecule.array_length()

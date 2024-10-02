@@ -118,6 +118,7 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None, box
             )
         p += res_length
         # Set annotation and coordinates for hydrogen atoms
+        already_used_names = set()
         for j in range(start, stop):
             hydrogen_coord_for_atom = hydrogen_coord[j]
             hydrogen_name_generator = name_library.generate_hydrogen_names(
@@ -130,7 +131,11 @@ def add_hydrogen(atoms, mask=None, fragment_library=None, name_library=None, box
                 hydrogenated_atoms.ins_code[p] = atoms.ins_code[j]
                 hydrogenated_atoms.res_name[p] = atoms.res_name[j]
                 hydrogenated_atoms.hetero[p] = atoms.hetero[j]
-                hydrogenated_atoms.atom_name[p] = next(hydrogen_name_generator)
+                for hydrogen_name in hydrogen_name_generator:
+                    if hydrogen_name == "" or hydrogen_name not in already_used_names:
+                        already_used_names.add(hydrogen_name)
+                        break
+                hydrogenated_atoms.atom_name[p] = hydrogen_name
                 hydrogenated_atoms.element[p] = "H"
                 heavy_index = index_mapping[j]
                 hydrogen_index = p
