@@ -300,15 +300,7 @@ def read_structure(path, format, model_number):
                 include_bonds=True,
             )
             # Expect that all ANY bonds are actually SINGLE bonds
-            bond_array = model.bonds.as_array()
-            unknown_order_mask = bond_array[:, 2] == struc.BondType.ANY
-            if unknown_order_mask.any():
-                warnings.warn(
-                    "For some bonds the bond order is unknown, "
-                    "hence single bonds are assumed"
-                )
-                bond_array[unknown_order_mask, 2] = struc.BondType.SINGLE
-                model.bonds = struc.BondList(model.array_length(), bond_array)
+            model.bonds = _handle_any_as_single_bonds(model.bonds)
         case "pdbx" | "cif" | "bcif":
             if format == "bcif":
                 if path == sys.stdin:
@@ -330,7 +322,7 @@ def read_structure(path, format, model_number):
                 extra_fields=["charge"],
                 include_bonds=True,
             )
-            model.bonds = struc.connect_via_residue_names(model)
+            model.bonds = _handle_any_as_single_bonds(model.bonds)
         case "mol":
             mol_file = mol.MOLFile.read(path)
             if model_number > 1:
@@ -420,3 +412,15 @@ def guess_format(path):
             return "sdf"
         case _:
             raise UserInputError(f"Unknown file extension '{suffix}'")
+
+
+def _handle_any_as_single_bonds(bond_list):
+    bond_array = bond_list.as_array()
+    unknown_order_mask = bond_array[:, 2] == struc.BondType.ANY
+    if unknown_order_mask.any():
+        warnings.warn(
+            "For some bonds the bond order is unknown, "
+            "hence single bonds are assumed"
+        )
+        bond_array[unknown_order_mask, 2] = struc.BondType.SINGLE
+    return struc.BondList(bond_list.get_atom_count(), bond_array)
