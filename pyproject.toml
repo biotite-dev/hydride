@@ -28,7 +28,7 @@ dynamic = ["version"]
 
 [project.optional-dependencies]
 test = [
-  "pytest",
+    "pytest",
 ]
 lint = [
     "ruff==0.5.2",
