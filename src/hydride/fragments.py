@@ -301,7 +301,8 @@ def _fragment(atoms, mask=None):
     fragments = [None] * atoms.array_length()
 
     all_bond_indices, all_bond_types = atoms.bonds.get_all_bonds()
-    elements = atoms.element
+    # Always convert to upper case to make the fragment matching case-insensitive
+    elements = np.char.upper(atoms.element)
     charges = atoms.charge
     coord = atoms.coord
 

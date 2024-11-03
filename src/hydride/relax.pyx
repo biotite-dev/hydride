@@ -184,7 +184,7 @@ class MinimumFinder:
         If this parameter is set, periodic boundary conditions are
         taken into account (minimum-image convention), based on
         the box vectors given with this parameter.
-    
+
     See also
     --------
     relax_hydrogen
@@ -195,13 +195,13 @@ class MinimumFinder:
                  float32 force_cutoff=10.0, box=None):
         cdef int i, j, k, pair_i
         cdef int32 atom_i, atom_j, bonded_atom_i
-        
+
         if atoms.array_length() != groups.shape[0]:
             raise ValueError(
                 f"There are {atoms.array_length()} atoms, "
                 f"but {groups.shape[0]} group indicators"
             )
-        
+
         self._prev_group_energies = None
         self._prev_coord = atoms.coord.copy()
         self._groups = np.asarray(groups)
@@ -228,7 +228,7 @@ class MinimumFinder:
             radius=force_cutoff
         )
 
-        
+
         cdef int32[:,:] bond_indices = atoms.bonds.get_all_bonds()[0]
 
 
@@ -245,7 +245,8 @@ class MinimumFinder:
             (adj_indices.shape[0] * adj_indices.shape[1]),
             dtype=np.int32
         )
-        cdef uint8[:] mask = relevant_mask.astype(np.uint8)
+        # Always convert to upper case to make the parametrization case-insensitive
+        elements = np.char.upper(atoms.element)
         pair_i = 0
         for i in range(relevant_indices.shape[0]):
             atom_i = relevant_indices[i]
@@ -265,8 +266,8 @@ class MinimumFinder:
                     continue
                 # Do not include interactions with atoms
                 # that have unknown, e.g. 'placeholder' elements
-                if atoms.element[atom_j] not in NB_VALUES.keys():
-                    warnings.warn(f"Unknown element '{atoms.element[atom_j]}'")
+                if elements[atom_j] not in NB_VALUES.keys():
+                    warnings.warn(f"Unknown element '{elements[atom_j]}'")
                     continue
                 interaction_pairs[pair_i, 0] = atom_i
                 interaction_pairs[pair_i, 1] = atom_j
@@ -277,7 +278,7 @@ class MinimumFinder:
         self._interaction_groups = np.asarray(interaction_groups)[:pair_i]
         # H-H-Interaction are included twice in the standard interaction
         # pairs, which would give wrong global energy
-        # -> Deduplicate these pairs 
+        # -> Deduplicate these pairs
         self._dedup_interaction_mask = self._deduplicate_pairs()
 
 
@@ -291,7 +292,7 @@ class MinimumFinder:
         cdef float32[:] elec_param  = np.zeros(pair_i, dtype=np.float32)
         for i in range(pair_i):
             elec_param[i] = 332.0673 * (
-                charges[interaction_pairs[i, 0]] * 
+                charges[interaction_pairs[i, 0]] *
                 charges[interaction_pairs[i, 1]]
             )
         self._elec_param  = np.asarray(elec_param)
@@ -300,7 +301,7 @@ class MinimumFinder:
         nb_values = np.array(
             [
                 NB_VALUES.get(element, (np.nan, np.nan))
-                for element in atoms.element
+                for element in elements
             ],
             dtype=np.float32
         )
@@ -310,9 +311,9 @@ class MinimumFinder:
         cdef float32[:] r_12 = np.zeros(pair_i, dtype=np.float32)
         cdef float32[:] sq_eps  = np.zeros(pair_i, dtype=np.float32)
         # Special handlding for potential hydrogen bonds:
-        # If hydrogen in bound to a donor element the optimal distance 
+        # If hydrogen in bound to a donor element the optimal distance
         # to the possible acceptor is decreased
-        cdef uint8[:] hbond_mask = np.isin(atoms.element, HBOND_ELEMENTS) \
+        cdef uint8[:] hbond_mask = np.isin(elements, HBOND_ELEMENTS) \
                                    .astype(np.uint8)
         cdef float32 hbond_factor
         # Calculate parameters for each H-X interaction
@@ -333,7 +334,7 @@ class MinimumFinder:
             else:
                     hbond_factor = 1.0
             r_6[i] = (hbond_factor * 0.5 * (
-                radii[atom_i] + 
+                radii[atom_i] +
                 radii[atom_j]
             ))**6
             r_12[i] = r_6[i]**2
@@ -341,7 +342,7 @@ class MinimumFinder:
         self._r_6  = np.asarray(r_6)
         self._r_12 = np.asarray(r_12)
         self._eps  = np.sqrt(np.asarray(sq_eps))
-    
+
 
     def calculate_global_energy(self, coord):
         """
@@ -420,7 +421,7 @@ class MinimumFinder:
                 prev_coord[i, 0] = next_coord[i, 0]
                 prev_coord[i, 1] = next_coord[i, 1]
                 prev_coord[i, 2] = next_coord[i, 2]
-        
+
         # Prepare the reference energies for the next call of
         # 'select_minimum()'
         # Do this after this call of select_minimum(), instead of the beginning
@@ -431,10 +432,10 @@ class MinimumFinder:
         )
         self._prev_group_energies = self._sum_for_groups(prev_energies)
         global_energy = np.sum(prev_energies[self._dedup_interaction_mask])
-        
+
         return self._prev_coord, global_energy, \
                np.frombuffer(accept_next, dtype=bool)
-    
+
 
     def _calculate_energies(self, prev_coord, next_coord):
         """
@@ -457,15 +458,15 @@ class MinimumFinder:
             for the corresponding atom group.
         """
         cdef int i
-        
+
         distances = struc.distance(
             prev_coord[self._interaction_pairs[:,1]],
             next_coord[self._interaction_pairs[:,0]],
             self._box
-        )      
+        )
         return self._pairwise_energy_function(distances)
-        
-        
+
+
     def _sum_for_groups(self, float32[:] values):
         """
         Sum up values (e.g. energies) for interaction pairs into
@@ -475,21 +476,21 @@ class MinimumFinder:
         ----------
         values : ndarray, shape=(p,), dtype=np.float32
             The input values.
-        
+
         Returns
         -------
         values : ndarray, shape=(g,), dtype=np.float32
             The summed values.
         """
         cdef int i
-        
+
         cdef float32[:] group_values = np.zeros(
             self._n_groups, dtype=np.float32
         )
         cdef int32[:] groups = self._interaction_groups
         for i in range(values.shape[0]):
             group_values[groups[i]] += values[i]
-        
+
         return np.asarray(group_values)
 
 
@@ -502,7 +503,7 @@ class MinimumFinder:
         ----------
         distances : ndarray, shape(p,), dtype=np.float32
             The distances for each pair of interacting atoms.
-        
+
         Returns
         -------
         energy : ndarray, shape(p,), dtype=np.float32
@@ -516,7 +517,7 @@ class MinimumFinder:
                 -2 * self._r_6 / distances**6 + self._r_12 / distances**12
             )
         ).astype(np.float32, copy=False)
-    
+
 
     def _deduplicate_pairs(self):
         """
@@ -601,7 +602,7 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
         the box vectors given with this parameter.
         If `box` is set to true, the box vectors are taken from the
         ``box`` attribute of `atoms` instead.
-    
+
     Returns
     -------
     relaxed_coord : ndarray, shape=(n,) or shape=(m,n), dtype=np.float32
@@ -617,11 +618,11 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
     Notes
     -----
     The potential consists of the following terms:
-    
+
     .. math::
 
         V = V_\text{el} + V_\text{nb}
-        
+
         V_\text{el} = 332.067
         \sum_i^\text{H}  \sum_j^\text{All}
         \frac{q_i q_j}{D_{ij}}
@@ -631,7 +632,7 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
         \left(
             \frac{r_{ij}^{12}}{D_{ij}^{12}} - 2\frac{r_{ij}^6}{D_{ij}^6}
         \right)
-    
+
     where :math:`D_{ij}` is the distance between the atoms :math:`i`
     and :math:`j`. :math:`\epsilon_{ij}` and :math:`r_{ij}` are the
     well depth and optimal distance between these atoms, respectively,
@@ -640,20 +641,20 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
     .. math::
 
          \epsilon_{ij} = \sqrt{ \epsilon_i  \epsilon_j},
-         
+
          r_{ij} = \frac{r_i + r_j}{2}.
-    
+
     :math:`\epsilon_{i/j}` and :math:`r_{i/j}` are taken from the
     *Universal Force Field* [1]_ [2]_.
 
     References
     ----------
-    
+
     .. [1] AK Rappé, CJ Casewit, KS Colwell, WA Goddard III and WM Skiff,
        "UFF, a full periodic table force field for molecular mechanics
        and molecular dynamics simulations."
        J Am Chem Soc, 114, 10024-10035 (1992).
-   
+
     .. [2] T Ogawa and T Nakano,
        "The Extended Universal Force Field (XUFF): Theory and applications."
        CBIJ, 10, 111-133 (2010)
@@ -678,7 +679,7 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
             return return_coord, np.zeros(0)
         else:
             return return_coord
-    
+
     if box is not None:
         if box is True:
             if atoms.box is None:
@@ -710,7 +711,7 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
         rotation_axes[i, 1] = coord[bonded_atom_index]
         matrix_indices[hydrogen_indices] = i
         rotation_freedom[i] = is_free
-    
+
     cdef float32[:,:,:] rot_mat_v = np.zeros(
         (len(rotatable_bonds), 3, 3), dtype=np.float32
     )
@@ -747,13 +748,13 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
     cdef float32 sin_a, cos_a, icos_a
     cdef float32 x, y, z
     n = 0
-    
+
     # Loop terminates via break if result converges
     # or iteration number is exceeded
     while True:
         if iterations is not None and n >= iterations:
             break
-        
+
         # Generate next hydrogen conformation
         # Calculate rotation matrices for these angles
         for mat_i in range(angles_v.shape[0]):
@@ -802,7 +803,7 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
             next_coord_v[i, 1] += support_v[mat_i, 1]
             next_coord_v[i, 2] += support_v[mat_i, 2]
 
-        
+
         # Calculate next conformation based on energy
         curr_coord, curr_energy, accepted_angles = minimum_finder.select_minimum(
             next_coord.astype(np.float32, copy=False)
@@ -823,7 +824,7 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
             break
         if not np.isnan(prev_energy) and curr_energy > prev_energy:
             # The relaxation algorithm allows the case, that the energy
-            # oscillates between multiple almost-minimum energies due to its 
+            # oscillates between multiple almost-minimum energies due to its
             # discrete nature and so convergence is never reached
             # To prevent this, the relaxation terminates, if the energy
             # of the accepted is higher than the one before
@@ -834,9 +835,9 @@ def relax_hydrogen(atoms, iterations=None, mask= None,
         if return_trajectory:
             trajectory.append(prev_coord.copy())
         energies.append(curr_energy)
-        
+
         n += 1
-    
+
     if return_trajectory:
         return_coord = np.stack(trajectory)
     else:
@@ -863,7 +864,7 @@ def _find_rotatable_bonds(atoms, mask=None):
         Ignore bonds, where the index of the heavy atom in the mask is
         False.
         By default no bonds are ignored.
-    
+
     Returns
     -------
     rotatable_bonds : list of tuple(int, int, bool, ndarray)
@@ -887,7 +888,7 @@ def _find_rotatable_bonds(atoms, mask=None):
                 f"but there are {atoms.array_length()} atoms"
             )
         atom_mask = mask.astype(np.uint8)
-        
+
     if atoms.bonds is None:
         raise struc.BadStructureError(
             "The input structure must have an associated BondList"
@@ -898,7 +899,7 @@ def _find_rotatable_bonds(atoms, mask=None):
 
     cdef uint8[:] is_hydrogen = (atoms.element == "H").astype(np.uint8)
     cdef uint8[:] is_nitrogen = (atoms.element == "N").astype(np.uint8)
-    
+
     cdef list rotatable_bonds = []
 
     cdef int32[:] hydrogen_indices
@@ -910,7 +911,7 @@ def _find_rotatable_bonds(atoms, mask=None):
     cdef bint is_rotatable
     for i in range(all_bond_indices.shape[0]):
         hydrogen_indices = np.zeros(4, np.int32)
-        
+
         if is_hydrogen[i] or not atom_mask[i]:
             continue
 
@@ -918,7 +919,7 @@ def _find_rotatable_bonds(atoms, mask=None):
         bonded_heavy_btype = -1
         is_rotatable = True
         h_i = 0
-        
+
         # Check for number of bonded heavy atoms
         # and store bonded hydrogen atoms
         for j in range(all_bond_indices.shape[1]):
@@ -939,7 +940,7 @@ def _find_rotatable_bonds(atoms, mask=None):
                 # -> no rotational freedom
                 is_rotatable = False
                 break
-        
+
         # There must be at least one bonded hydrogen atom
         if h_i == 0:
             is_rotatable = False
@@ -978,7 +979,7 @@ def _find_rotatable_bonds(atoms, mask=None):
                 is_free = False
         else:
             is_free = False
-        
+
         # 180 degrees rotation makes only sense if there is only one
         # hydrogen atom, as two hydrogen atoms would simply replace each
         # other after rotation

@@ -277,7 +277,7 @@ def test_undefined_bond_type():
         molecule.bonds.as_array()[:, :2],
     )
 
-    # Test handing of 'BondType.ANY' in 'add_molecule()'
+    # Test handling of 'BondType.ANY' in 'add_molecule()'
     library = hydride.FragmentLibrary()
     with pytest.warns(UserWarning) as record:
         library.add_molecule(molecule)
@@ -305,3 +305,21 @@ def test_undefined_bond_type():
     for coord in hydrogen_coord:
         # For each heavy atom there should be no added hydrogen
         assert len(coord) == 0
+
+
+@pytest.mark.filterwarnings("error")
+def test_capitalized_elements():
+    """
+    Check if the :class:`FragmentLibrary` matches fragments to atoms independent of
+    the capitalization of the element name.
+    """
+    # Choose a molecule with at least one two-letter element name, in this case 'SE'
+    molecule = info.residue("SEC")
+    molecule.element = np.char.capitalize(molecule.element)
+    heavy_atoms = molecule[molecule.element != "H"]
+
+    library = hydride.FragmentLibrary.standard_library()
+    hydrogen_coord = library.calculate_hydrogen_coord(heavy_atoms)
+
+    # Check if the correct number of hydrogen atoms are found
+    assert len(hydrogen_coord) + heavy_atoms.array_length() == molecule.array_length()
