@@ -59,11 +59,11 @@ jobs:
           platforms: all
 
       - name: Build & (optionally) test wheels
-        uses: pypa/cibuildwheel@v2.19.1
+        uses: pypa/cibuildwheel@v3.2.0
 
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
-          name: dist
+          name: release-${{ matrix.os }}
           path: ./wheelhouse/*.whl
           if-no-files-found: error
 
@@ -78,9 +78,9 @@ jobs:
         submodules: true
     - name: Build source distribution
       run: pipx run build --sdist
-    - uses: actions/upload-artifact@v3
+    - uses: actions/upload-artifact@v4
       with:
-        name: dist
+        name: release-sdist
         path: dist/*.tar.gz
         if-no-files-found: error
 
@@ -106,7 +106,7 @@ jobs:
         run: sphinx-build ./doc ./build/doc
       - name: Zipping documentation
         run: cd .//build; zip -r doc.zip doc; cd ..
-      - uses: actions/upload-artifact@v3
+      - uses: actions/upload-artifact@v4
         with:
           name: doc
           path: build//doc.zip
@@ -124,7 +124,15 @@ jobs:
       - make-doc
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/download-artifact@v3
+    - uses: actions/download-artifact@v4
+      with:
+        pattern: release-*
+        merge-multiple: true
+        path: dist
+    - uses: actions/download-artifact@v4
+      with:
+        name: doc
+        path: doc
     - name: List distributions to be uploaded
       run: ls dist
     - name: Upload to GitHub Releases
