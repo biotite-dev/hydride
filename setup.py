@@ -148,7 +148,8 @@ if not isfile(fragment_file_path):
                 print(f"Compiling fragment library... ({i}/{len(mol_names)})", end="\r")
             try:
                 mol = info.residue(mol_name)
-            except KeyError:
+            except ValueError:
+                # Molecule has missing coordinates
                 continue
             std_fragment_library.add_molecule(mol)
     print("Compiling fragment library... Done" + " " * 20)
