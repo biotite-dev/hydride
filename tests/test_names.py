@@ -63,3 +63,27 @@ def test_names_from_library(res_name):
         test_hydrogen_names = [next(gen) for _ in range(len(ref_hydrogen_names))]
 
         assert test_hydrogen_names == ref_hydrogen_names
+
+
+@pytest.mark.parametrize(
+    "res_name, expected_names",
+    [
+        ("HID", {"ND1": ["HD1"], "CD2": ["HD2"], "CE1": ["HE1"]}),
+        ("HIE", {"ND1": [], "CD2": ["HD2"], "CE1": ["HE1"], "NE2": ["HE2"]}),
+        (
+            "HIP",
+            {
+                "ND1": ["HD1"],
+                "CD2": ["HD2"],
+                "CE1": ["HE1"],
+                "NE2": ["HE2"],
+            },
+        ),
+    ],
+)
+def test_histidine_variant_names(res_name, expected_names):
+    """MoleculeKit/PDB histidine names are present in the generated library."""
+    name_lib = hydride.AtomNameLibrary.standard_library()
+    for atom_name, hydrogen_names in expected_names.items():
+        generator = name_lib.generate_hydrogen_names(res_name, atom_name)
+        assert [next(generator) for _ in hydrogen_names] == hydrogen_names

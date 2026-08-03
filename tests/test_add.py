@@ -280,3 +280,14 @@ def test_empty_annotations():
     assert np.all(hydrogen_atoms.atom_name == "")
     # Roughly check correct hydrogen addition
     assert test_molecule.array_length() == ref_molecule.array_length()
+
+
+@pytest.mark.parametrize("res_name", ["HID", "HIE", "HIP"])
+def test_histidine_variant_residue_names_are_preserved(res_name):
+    """Hydrogenation never normalizes a caller's histidine residue name."""
+    molecule = info.residue("HIS")
+    molecule.res_name[:] = res_name
+    molecule = molecule[molecule.element != "H"]
+
+    hydrogenated, _ = hydride.add_hydrogen(molecule)
+    assert np.all(hydrogenated.res_name == res_name)
