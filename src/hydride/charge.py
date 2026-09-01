@@ -30,6 +30,10 @@ PK_NH3 = {
     "TRP": 9.34,
     "TYR": 9.04,
     "VAL": 9.52,
+
+    "SEC": 9.96,
+    "PYL": 9.60,
+    "FME": 9.20,
 }
 
 PK_COOH = {
@@ -53,6 +57,10 @@ PK_COOH = {
     "TRP": 2.38,
     "TYR": 2.24,
     "VAL": 2.27,
+
+    "SEC": 2.01,
+    "PYL": 2.20,
+    "FME": 2.10,
 }
 
 # pK values for side chains
@@ -65,6 +73,7 @@ PK_SIDE_CHAIN = {
     ("HIS", "ND1"): (6.04, 1),
     ("LYS", "NZ"): (10.67, 1),
     ("TYR", "OH"): (10.10, 0),
+    ("SEC", "SE"): (5.24, 0),
 }
 
 

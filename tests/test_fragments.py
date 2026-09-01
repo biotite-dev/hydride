@@ -323,3 +323,10 @@ def test_capitalized_elements():
 
     # Check if the correct number of hydrogen atoms are found
     assert len(hydrogen_coord) + heavy_atoms.array_length() == molecule.array_length()
+
+
+def test_histidine_variants_in_standard_library():
+    """The generated fragment library contains all named histidine states."""
+    library = hydride.FragmentLibrary.standard_library()
+    source_names = {value[0] for value in library._frag_dict.values()}
+    assert {"HID", "HIE", "HIP"}.issubset(source_names)

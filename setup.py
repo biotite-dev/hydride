@@ -31,6 +31,10 @@ PROMINENT_MOLECULES = [
     "GLU",
     "GLY",
     "HIS",
+    # histidine tautomers
+    "HID",
+    "HIE",
+    "HIP",
     "ILE",
     "LEU",
     "LYS",
@@ -126,19 +130,82 @@ def get_protonation_variants():
     return molecules
 
 
+def get_histidine_variants():
+    """Get the CCD histidine protonation variants under PDB names.
+
+    The protonation-variant file uses internal names for optimized
+    structures. The three records below are chemically equivalent to the
+    MoleculeKit variants, but their internal names must not leak into
+    the generated name library.
+    """
+    variant_names = {
+        "HIS_LEO2H_DHE2": "HID",  # ND1-H, NE2 unprotonated
+        "HIS_LEO2H_DHD1": "HIE",  # ND1 unprotonated, NE2-H
+        "HIS_LEO2H": "HIP",      # ND1-H and NE2-H, cation
+    }
+    variants = []
+    for molecule in get_protonation_variants():
+        source_name = molecule.res_name[0]
+        target_name = variant_names.get(source_name)
+        if target_name is None:
+            continue
+        molecule.res_name[:] = target_name
+        variants.append(molecule)
+    return variants
+
+
 def get_mol_names_in_ccd():
     ccd = get_ccd()
     atom_category = ccd["chem_comp_atom"]
     return np.unique(atom_category["comp_id"].as_array()).tolist()
 
 
+def fragment_library_needs_update(file_path):
+    """Check whether a generated fragment library predates histidine variants."""
+    if not isfile(file_path):
+        return True
+
+    try:
+        with open(file_path, "rb") as file:
+            fragment_dict = pickle.load(file)
+    except (OSError, pickle.UnpicklingError, EOFError):
+        return True
+
+    return not {"HID", "HIE", "HIP"}.issubset(
+        {value[0] for value in fragment_dict.values()}
+    )
+
+
+def name_library_needs_update(file_path):
+    """Check whether a generated atom-name library predates histidine variants."""
+    if not isfile(file_path):
+        return True
+
+    try:
+        with open(file_path, "rb") as file:
+            name_dict = pickle.load(file)
+    except (OSError, pickle.UnpicklingError, EOFError):
+        return True
+
+    return any(
+        not any(key[0] == res_name for key in name_dict)
+        for res_name in ("HID", "HIE", "HIP")
+    )
+
+
 # Compile fragment library
 fragment_file_path = join("src", "hydride", "fragments.pickle")
-if not isfile(fragment_file_path):
+if fragment_library_needs_update(fragment_file_path):
     std_fragment_library = FragmentLibrary()
     # Add protonation variants at first because the bond lengths
     # for neutral fragments might vary slightly
     for mol in get_protonation_variants():
+        std_fragment_library.add_molecule(mol)
+    # Add the MoleculeKit histidine variants before the canonical HIS
+    # reference. Their tautomer-specific local topology and formal charges
+    # select distinct fragments; HIS remains the preferred reference for any
+    # fragment shared with the canonical residue.
+    for mol in get_histidine_variants():
         std_fragment_library.add_molecule(mol)
     mol_names = get_mol_names_in_ccd() + PROMINENT_MOLECULES
     with warnings.catch_warnings():
@@ -159,7 +226,7 @@ if not isfile(fragment_file_path):
 
 # Compile atom name library
 names_file_path = join("src", "hydride", "names.pickle")
-if not isfile(names_file_path):
+if name_library_needs_update(names_file_path):
     std_name_library = AtomNameLibrary()
     with warnings.catch_warnings():
         warnings.simplefilter("ignore")
@@ -175,6 +242,8 @@ if not isfile(names_file_path):
                 mol = info.residue(mol_name)
             except KeyError:
                 continue
+            std_name_library.add_molecule(mol)
+        for mol in get_histidine_variants():
             std_name_library.add_molecule(mol)
     print("Compiling atom name library... Done" + " " * 20)
     with open(names_file_path, "wb") as names_file:
